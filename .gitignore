@@ -1,0 +1,13 @@
+# Ignore .env file
+.env
+
+# Ignore IDE and editor files
+.vscode/
+.idea/
+.DS_Store
+
+# Ignore Composer dependencies folder
+vendor/
+
+# Ignore the .htaccess file
+.htaccess
