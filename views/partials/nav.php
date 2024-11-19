@@ -40,7 +40,7 @@
           src="../assets/img/svg/data-management.svg" alt="data-management"
           class="mr-3 h-8"
         />
-        <span class="self-center text-2xl font-semibold whitespace-nowrap dark:text-white">FormView</span>
+        <span class="self-center text-2xl font-semibold whitespace-nowrap dark:text-white">DataView</span>
       </a>
     </div>
     <div class="flex items-center lg:order-2">
