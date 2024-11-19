@@ -30,5 +30,5 @@
 
 1. **Clone the repository**:
    ```bash
-   git clone https://github.com/Gheorghii28/FormView.git
-   cd FormView
+   git clone https://github.com/Gheorghii28/DataView.git
+   cd DataView
