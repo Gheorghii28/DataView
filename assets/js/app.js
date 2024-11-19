@@ -1,15 +1,14 @@
-function loadView(containerId, view) {
-   const url = "controllers/load_view.php?view=" + view;
-   const xmlhttp = new XMLHttpRequest();
+import { loadView } from './viewLoader.js';
+import { loadScript } from './scriptLoader.js';
 
-   xmlhttp.onreadystatechange = function() {
-       if (this.readyState == 4 && this.status == 200) {
-           document.getElementById(containerId).innerHTML = xmlhttp.responseText;
-       }
-   };
+window.loadView = loadView; // Make loadView globally available
 
-   xmlhttp.open("GET", url, true);
-   xmlhttp.send();
-}
+const scripts = [
+    'assets/js/create_table_form.js', // Include the external JS file for form submission and dynamic column management
+];
 
 loadView('view-container', 'dashboard'); // Call the loadView function to load the 'dashboard' view into the container with the ID 'view-container'
+
+scripts.forEach(function(script) {
+    loadScript(script);
+});
