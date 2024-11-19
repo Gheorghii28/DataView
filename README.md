@@ -1,6 +1,6 @@
-# FormView
+# DataView
 
-**FormView** is a PHP-based application that provides a user-friendly platform for data collection, management, and visualization. Users can register and log in, submit data through a form, and view it in real-time in tables or charts. Additionally, the application allows data to be exported as a PDF.
+**DataView** is a PHP-based application that provides a user-friendly platform for data collection, management, and visualization. Users can register and log in, submit data through a form, and view it in real-time in tables or charts. Additionally, the application allows data to be exported as a PDF.
 
 ## Features
 
