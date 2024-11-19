@@ -120,7 +120,7 @@
 	<!-- Tailwind and Flowbite -->
 	<script src="https://cdn.tailwindcss.com"></script>
 	<link href="https://cdn.jsdelivr.net/npm/flowbite@2.5.2/dist/flowbite.min.css" rel="stylesheet" />
-	<script src="../config/tailwind.config.js"></script>
+	<script src="../assets/css/tailwind.config.js"></script>
 </head>
 <body>
 	<main>
