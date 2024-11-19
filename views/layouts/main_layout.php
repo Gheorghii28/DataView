@@ -8,4 +8,6 @@
 		</section>
 	</main>
 </div>
+<?php include 'views/partials/modals/messages/success_message.php'; ?>
+<?php include 'views/partials/modals/messages/error_message.php'; ?>
 <?php include 'footer.php'; ?>
