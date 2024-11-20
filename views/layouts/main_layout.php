@@ -5,6 +5,11 @@
 		$baseApiUrl = $config['base_api_url'];
 		echo htmlspecialchars($baseApiUrl, ENT_QUOTES, 'UTF-8'); 
 	?>" 
+	data-user-id="<?php
+		$config = include __DIR__ . '/../../config/config.php';
+		$userId = $_SESSION['id'];
+		echo htmlspecialchars($userId, ENT_QUOTES, 'UTF-8'); 
+	?>" 
 	class="antialiased bg-gray-50 dark:bg-gray-900">
 	<?php include 'views/partials/nav.php'; ?>
 	<?php include 'views/partials/aside.php'; ?>

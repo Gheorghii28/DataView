@@ -50,5 +50,52 @@ class Table {
         $result->free(); // Free the result set
     
         return $exists;
-    }    
+    }
+
+    public function saveTable($userId, $tableName) {
+        // Prepare the SQL query
+        $query = "INSERT INTO user_tables (user_id, table_name) VALUES (?, ?)";
+        $stmt = $this->mysqli->prepare($query);
+
+        if (!$stmt) {
+            error_log("Prepare failed: " . $this->mysqli->error);
+            return false;
+        }
+
+        $stmt->bind_param('is', $userId, $tableName); // Bind parameters
+
+        $success = $stmt->execute(); // Execute the query
+
+        if (!$success) {
+            error_log("Execute failed: " . $stmt->error);
+        }
+
+        $stmt->close();
+
+        return $success;
+    }
+
+    public function getTablesByUser($userId) {
+        // SQL query to retrieve the user's tables
+        $query = "SELECT table_name FROM user_tables WHERE user_id = ?";
+        $stmt = $this->mysqli->prepare($query);
+
+        if (!$stmt) {
+            error_log("Prepare failed: " . $this->mysqli->error);
+            return false;
+        }
+
+        $stmt->bind_param('i', $userId); // Bind the user ID to the query
+        $stmt->execute();
+        $result = $stmt->get_result();
+
+        $tables = []; // Array to store table names
+        while ($row = $result->fetch_assoc()) {
+            $tables[] = $row['table_name'];
+        }
+
+        $stmt->close();
+
+        return $tables;
+    }
 }

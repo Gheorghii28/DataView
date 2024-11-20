@@ -12,11 +12,16 @@ class TableController {
     }
 
     public function create($request) {
+
+        if (!isset($request['userId'])) {
+            return jsonResponse(401, 'Unauthorized. User ID is missing.');
+        }
         
         if (!isset($request['name']) || !isset($request['columns'])) {
             return jsonResponse(400, 'Invalid request. Name and columns are required.');
         }
 
+        $userId = $request['userId'];
         $tableName = $request['name'];
         $columns = $request['columns']; // Ex: ['name' => 'VARCHAR(255)', 'age' => 'INT']
 
@@ -35,8 +40,26 @@ class TableController {
         $result = $this->tableModel->create($tableName, $columns);
 
         if ($result) {
-            return jsonResponse(200, "Table '$tableName' created successfully.");
+            $saved = $this->tableModel->saveTable($userId, $tableName); // Save the table in the user_tables table
+            if ($saved) {
+                return jsonResponse(200, "Table '$tableName' created and linked to user successfully.");
+            }
+            return jsonResponse(500, "Table created, but failed to link to user.");
         }
         return jsonResponse(500, "Failed to create table.");
+    }
+
+    public function getUserTables($userId) {
+        if (!$userId) {
+            return jsonResponse(400, 'User ID is required.');
+        }
+
+        $userTables = $this->tableModel->getTablesByUser($userId);
+
+        if (!empty($userTables)) {
+            return jsonResponse(200, 'User tables fetched successfully.', $userTables);
+        } else {
+            return jsonResponse(404, 'No tables found for this user.');
+        }
     }
 }

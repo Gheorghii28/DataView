@@ -6,6 +6,7 @@ export function resetForm(modalSelector) {
 
 export function getTableData() {
     const baseApiUrl = $('#config').data('api-url');
+    const userId = $('#config').data('user-id');
     const tableName = $("input[name='table_name']").val();
     const columns = {};
 
@@ -22,6 +23,7 @@ export function getTableData() {
         tableData: {
             name: tableName,
             columns: columns,
+            userId: userId,
         },
     };
 }

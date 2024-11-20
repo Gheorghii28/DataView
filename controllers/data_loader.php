@@ -27,9 +27,9 @@ function loadProfileData($mysql_db, $user_id) {
     return getUserData($mysql_db, $user_id);
 }
 
-function loadComponentsData($mysql_db, $user_id) {
+function loadTableData($mysql_db, $user_id) {
     // Currently, we're only fetching the username, but you can expand this 
-    // to fetch more data relevant to the user's components.
+    // to fetch more data relevant to the user's table.
     return getUserData($mysql_db, $user_id);
 }
 

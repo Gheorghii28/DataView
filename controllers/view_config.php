@@ -1,7 +1,7 @@
 <?php
 // Mapping of allowed views to their respective view file paths
 $allowedViews = [
-    'components' => 'components.php',
+    'table' => 'table.php',
     'profile' => 'profile.php',
     'settings' => 'settings.php',
     'dashboard' => 'dashboard.php',
@@ -11,6 +11,6 @@ $allowedViews = [
 $viewDataFunctions = [
     'dashboard' => 'loadDashboardData',
     'profile' => 'loadProfileData',
-    'components' => 'loadComponentsData',
+    'table' => 'loadTableData',
     'settings' => 'loadSettingsData',
 ];
