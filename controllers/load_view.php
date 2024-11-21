@@ -8,6 +8,7 @@ session_start(); // Start session to access user session data
 
 $user_id = $_SESSION['id'] ?? null;
 $view = isset($_GET['view']) ? $_GET['view'] : ''; // Get the requested view from the query parameter
+$table_name = $_GET['table_name'] ?? null; // Optionally retrieve the table name
 $viewBasePath = '../views/'; // Define the base path for views
 $viewFile = '../views/404.php'; // Default view file for errors
 $data = []; // Initialize data array for the view
@@ -17,7 +18,7 @@ if (array_key_exists($view, $allowedViews)) { // Check if the view is in the all
     $viewFile = $viewBasePath . $allowedViews[$view]; // Set the correct view file path
 
     if (isset($viewDataFunctions[$view])) { // Check if a corresponding data loading function exists for the requested view
-        $data = call_user_func($viewDataFunctions[$view], $mysql_db, $user_id); // Load data for the view dynamically
+        $data = call_user_func($viewDataFunctions[$view], $mysql_db, $user_id, $table_name); // Load data for the view dynamically
     }
 }
 
