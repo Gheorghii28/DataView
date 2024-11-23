@@ -98,4 +98,26 @@ class Table {
 
         return $tables;
     }
+
+    public function rename($oldName, $newName) {
+        if ($this->exists($newName)) { // Check if the new table name already exists
+            return ['success' => false, 'message' => "Table '$newName' already exists."];
+        }
+    
+        $sql = "RENAME TABLE `$oldName` TO `$newName`"; // SQL statement to rename the table
+    
+        if ($this->mysqli->query($sql)) {
+            // Update the entry in the user_tables table
+            $updateQuery = "UPDATE user_tables SET table_name = ? WHERE table_name = ?";
+            $stmt = $this->mysqli->prepare($updateQuery);
+            if ($stmt) {
+                $stmt->bind_param('ss', $newName, $oldName);
+                $stmt->execute();
+                $stmt->close();
+            }
+            return ['success' => true, 'message' => "The table has been successfully renamed from '$oldName' to '$newName'."];
+        } else {
+            return ['success' => false, 'message' => 'Error renaming table: ' . $this->mysqli->error];
+        }
+    }    
 }

@@ -5,7 +5,7 @@ import { getUserTables } from './tableApi.js';
 window.loadView = loadView; // Make loadView globally available
 
 const scripts = [
-    'assets/js/create_table_form.js', // Include the external JS file for form submission and dynamic column management
+    'assets/js/uiEvents.js', // Contains event handlers and functions for user interface interactions
 ];
 const baseApiUrl = $('#config').data('api-url');
 const userId = $('#config').data('user-id');

@@ -62,4 +62,35 @@ class TableController {
             return jsonResponse(404, 'No tables found for this user.');
         }
     }
+
+    public function renameTable($request) {
+        if (!isset($request['userId'])) {
+            return jsonResponse(401, 'Unauthorized. User ID is missing.');
+        }
+    
+        if (!isset($request['oldName']) || !isset($request['newName'])) {
+            return jsonResponse(400, 'Invalid request. Old name and new name are required.');
+        }
+    
+        $userId = $request['userId'];
+        $oldName = $request['oldName'];
+        $newName = $request['newName'];
+    
+        if (!Validator::validateTableName($newName)) {
+            return jsonResponse(400, 'Invalid new table name. Use only letters, numbers, and underscores.');
+        }
+    
+        $userTables = $this->tableModel->getTablesByUser($userId);
+        if (!in_array($oldName, $userTables)) { // Check if the table belongs to the user
+            return jsonResponse(403, 'Forbidden. You do not have permission to rename this table.');
+        }
+    
+        $result = $this->tableModel->rename($oldName, $newName); // Rename the table
+    
+        if ($result['success']) {
+            return jsonResponse(200, $result['message']);
+        } else {
+            return jsonResponse(500, $result['message']);
+        }
+    }    
 }
