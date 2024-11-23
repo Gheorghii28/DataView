@@ -7,7 +7,8 @@ export function loadView(containerId, view, tableName = null) {
  
     xmlhttp.onreadystatechange = function() {
         if (this.readyState == 4 && this.status == 200) {
-            document.getElementById(containerId).innerHTML = xmlhttp.responseText;
+            document.getElementById(containerId).innerHTML = xmlhttp.responseText; // Inject the received HTML into the container
+            window.initFlowbite(); // Reinitialize Flowbite components after the DOM is updated
         }
     };
  
