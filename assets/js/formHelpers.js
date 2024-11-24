@@ -5,9 +5,7 @@ export function resetForm(modalSelector) {
 }
 
 export function getTableData() {
-    const config = getConfigData();
-    const baseApiUrl = config.baseApiUrl;
-    const userId = config.userId;
+    const { baseApiUrl, userId } = getConfigData();
     const tableName = $("input[name='table_name']").val();
     const columns = {};
 
@@ -24,6 +22,19 @@ export function getTableData() {
         tableData: {
             name: tableName,
             columns: columns,
+            userId: userId,
+        },
+    };
+}
+
+export function getTableDataForDeletion() {
+    const { baseApiUrl, userId } = getConfigData();
+    const tableName = $('#deleteTableForm').data('table-name');
+
+    return {
+        baseApiUrl: baseApiUrl,
+        tableData: {
+            tableName: tableName,
             userId: userId,
         },
     };
@@ -52,4 +63,9 @@ export function focusInputFieldById(inputId) {
     $(`#${inputId}`).focus(); // Focus on the input field with the provided ID
     const input = $(`#${inputId}`)[0];
     input.setSelectionRange(input.value.length, input.value.length); // Set the cursor to the end of the text in the input field
+}
+
+export function updateDeleteConfirmation(formSelector, deleteMessage, newTableName, dataAttribute) {
+    $(formSelector).attr(`data-${dataAttribute}`, newTableName); // Update the data attribute of the form
+    $('#deleteMessage').text(deleteMessage); // Update the delete confirmation message
 }

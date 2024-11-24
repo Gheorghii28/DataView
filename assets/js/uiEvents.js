@@ -1,6 +1,6 @@
 import { tableColumnTemplate } from './templates.js';
-import { getTableData, getConfigData,  focusInputFieldById, toggleElementPairVisibility } from './formHelpers.js';
-import { createTable, renameTable } from './tableApi.js';
+import { getTableData, getConfigData,  focusInputFieldById, toggleElementPairVisibility, getTableDataForDeletion } from './formHelpers.js';
+import { createTable, renameTable, deleteTable } from './tableApi.js';
 
 let renameTableClickListenerEnabled = false; // Tracks whether the outside click listener for renaming the table is active
 
@@ -25,6 +25,14 @@ $(document).ready(function () {
         createTable(baseApiUrl, tableData); // Call the API to create the table
     });
 
+    $(document).on('submit', '#deleteTableForm', (e) => { // Handle the "Delete Table" form submission
+        e.preventDefault();
+    
+        const { baseApiUrl, tableData } = getTableDataForDeletion();
+
+        deleteTable(baseApiUrl, tableData); // Call the API to delete the table
+    });    
+
     $('#addColumnBtn').on('click', (e) => { // Handle adding new columns dynamically
         e.preventDefault();
 
@@ -45,6 +53,11 @@ $(document).ready(function () {
         enableRenameTableClickListener(); // Enable the outside click listener to detect clicks outside the input field
     });
 
+    $(document).on('click', '#deleteTableBtn', (e) => { // Handle the "Delete Table" button click
+        e.preventDefault();
+        $('#deleteTableConfirmationBtn').click(); // Trigger the click event to show the delete confirmation modal
+    });
+
     $(document).on('click', (e) => { // Handle clicks outside the input field to confirm renaming
         if (renameTableClickListenerEnabled && !$(e.target).closest('#tableNameInputWrapper, #renameTableBtn').length) { // Check if the click happened outside the input field and the rename button
             const config = getConfigData(); // Get configuration data (API URL and user ID)
@@ -61,6 +74,12 @@ $(document).ready(function () {
                 toggleElementPairVisibility('tableNameDisplay', 'tableNameInputWrapper'); // Hide the input field and show the table name display
             }
             disableRenameTableClickListener(); // Disable the outside click listener
+        }
+    });
+
+    $('[data-modal-toggle="successModal"]').on('click', function() { // Handles click on button with data-modal-toggle="successModal". 
+        if (window.loadViewAllowed) { // If window.loadViewAllowed is true, it calls the loadView function to load the 'dashboard' view into 'view-container'.
+            loadView('view-container', 'dashboard');
         }
     });
 });

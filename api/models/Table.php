@@ -75,6 +75,44 @@ class Table {
         return $success;
     }
 
+    public function delete($tableName) {
+        if (!$this->exists($tableName)) { // Check if the table exists
+            return ['success' => false, 'message' => "Table '$tableName' does not exist."];
+        }
+    
+        $this->mysqli->begin_transaction(); // Begin a transaction to ensure data consistency
+    
+        try {
+            // Attempt to drop the table from the database
+            $dropTableQuery = "DROP TABLE `$tableName`";
+            if (!$this->mysqli->query($dropTableQuery)) {
+                throw new Exception("Failed to drop table: " . $this->mysqli->error);
+            }
+    
+            // Remove the table entry from the user_tables table
+            $deleteLinkQuery = "DELETE FROM user_tables WHERE table_name = ?";
+            $stmt = $this->mysqli->prepare($deleteLinkQuery);
+            if (!$stmt) {
+                throw new Exception("Prepare failed: " . $this->mysqli->error);
+            }
+    
+            // Bind the table name as a parameter and execute the query
+            $stmt->bind_param('s', $tableName);
+            if (!$stmt->execute()) {
+                throw new Exception("Execute failed: " . $stmt->error);
+            }
+    
+            $stmt->close(); // Close the prepared statement
+    
+            $this->mysqli->commit(); // Commit the transaction if all operations succeed
+    
+            return ['success' => true, 'message' => "Table '$tableName' has been successfully deleted."];
+        } catch (Exception $e) {
+            $this->mysqli->rollback(); // Rollback the transaction if any operation fails
+            return ['success' => false, 'message' => $e->getMessage()];
+        }
+    }    
+
     public function getTablesByUser($userId) {
         // SQL query to retrieve the user's tables
         $query = "SELECT table_name FROM user_tables WHERE user_id = ?";

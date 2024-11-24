@@ -1,5 +1,5 @@
 import { showSuccessMessage, showErrorMessage } from './notification.js';
-import { resetForm, toggleElementPairVisibility, updateElementTextAndValue } from './formHelpers.js';
+import { resetForm, toggleElementPairVisibility, updateDeleteConfirmation, updateElementTextAndValue } from './formHelpers.js';
 import { tableListItemTemplate } from './templates.js';
 
 export function createTable(baseApiUrl, tableData) {
@@ -15,6 +15,30 @@ export function createTable(baseApiUrl, tableData) {
                 getUserTables(baseApiUrl, tableData.userId);
             } else {
                 showErrorMessage(response.message);
+                console.error("Error: " + response.status + " - " + response.message);
+            }
+        },
+        error: function (xhr, status, error) {
+            const response = JSON.parse(xhr.responseText);
+            const errorMessage = response.message || 'Unknown error';
+            showErrorMessage(errorMessage);
+            console.error("Error creating the table:", error, "Response:", xhr.responseText);
+        }
+    });
+}
+
+export function deleteTable(baseApiUrl, tableData) {
+    $.ajax({
+        url: `${baseApiUrl}/api/table`,
+        method: 'DELETE',
+        contentType: 'application/json',
+        data: JSON.stringify(tableData), // Ex: { userId: 1, tableName: 'table_name' }
+        success: function (response) {
+            if (response.status == 200) {
+                showSuccessMessage(response.message, true);
+                getUserTables(baseApiUrl, tableData.userId); // Update the user's table list
+            } else {
+                showErrorMessage(response.message); // Show error notification for non-200 status
                 console.error("Error: " + response.status + " - " + response.message);
             }
         },
@@ -63,6 +87,12 @@ export function renameTable(baseApiUrl, renameData) {
                 getUserTables(baseApiUrl, renameData.userId); // Update the user's table list
                 toggleElementPairVisibility('tableNameDisplay', 'tableNameInputWrapper'); // Hide the input field and show the table name display
                 updateElementTextAndValue('tableNameDisplay', 'newTableName', 'oldTableName', 'Table: '); // Update the displayed table name with the new value
+                updateDeleteConfirmation( // Updates the delete confirmation modal with the new table name and message
+                    '#deleteTableForm', 
+                    `Are you sure you want to delete the table  "${response.data.newTableName}" ?`, 
+                    response.data.newTableName, 
+                    'table-name'
+                );
             } else {
                 showErrorMessage(response.message); // Show error notification for non-200 status
                 console.error("Error: " + response.status + " - " + response.message);

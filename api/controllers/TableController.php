@@ -49,6 +49,34 @@ class TableController {
         return jsonResponse(500, "Failed to create table.");
     }
 
+    public function delete($request) {
+        if (!isset($request['userId'])) { // Check if the request contains a user ID
+            return jsonResponse(401, 'Unauthorized. User ID is missing.');
+        }
+    
+        if (!isset($request['tableName'])) { // Validate that a table name is provided
+            return jsonResponse(400, 'Invalid request. Table name is required.');
+        }
+    
+        $userId = $request['userId'];
+        $tableName = $request['tableName'];
+    
+        // Verify that the table belongs to the user
+        $userTables = $this->tableModel->getTablesByUser($userId);
+        if (!in_array($tableName, $userTables)) {
+            return jsonResponse(403, 'Forbidden. You do not have permission to delete this table.');
+        }
+    
+        $result = $this->tableModel->delete($tableName); // Attempt to delete the table
+    
+        // Return appropriate response based on deletion result
+        if ($result['success']) {
+            return jsonResponse(200, $result['message']);
+        } else {
+            return jsonResponse(500, $result['message']);
+        }
+    }    
+
     public function getUserTables($userId) {
         if (!$userId) {
             return jsonResponse(400, 'User ID is required.');
@@ -88,7 +116,7 @@ class TableController {
         $result = $this->tableModel->rename($oldName, $newName); // Rename the table
     
         if ($result['success']) {
-            return jsonResponse(200, $result['message']);
+            return jsonResponse(200, $result['message'], ['newTableName' => $newName]);
         } else {
             return jsonResponse(500, $result['message']);
         }

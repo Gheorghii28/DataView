@@ -13,6 +13,10 @@ if ($uri[1] === 'table') {
             $requestData = json_decode(file_get_contents('php://input'), true);
             echo $tableController->create($requestData);
             break;
+        case 'DELETE':
+            $requestData = json_decode(file_get_contents('php://input'), true);
+            echo $tableController->delete($requestData);
+            break;
 
         // Add additional methods like PUT or DELETE here as needed
 
