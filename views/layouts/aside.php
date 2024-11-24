@@ -207,4 +207,4 @@
     </div>
   </div>
 </aside>
-<?php include 'modals/forms/form_create_table.php'; ?>
+<?php require_once __DIR__ . '/../../views/partials/modals/forms/form_create_table.php'; ?>

@@ -66,48 +66,50 @@
         <div class="py-3 px-4">
           <span
             class="block text-sm font-semibold text-gray-900 dark:text-white"
-            ><?php echo $_SESSION['username']; ?></span
           >
+            <?php echo $_SESSION['username']; ?>
+          </span>
           <span
             class="block text-sm text-gray-900 truncate dark:text-white"
-            >name@email.com</span
           >
+            name@email.com
+          </span>
         </div>
         <ul
           class="py-1 text-gray-700 dark:text-gray-300"
-          aria-labelledby="dropdown"
+          aria-labelledby="user-menu-button"
         >
           <li>
             <span
               class="cursor-pointer block py-2 px-4 text-sm hover:bg-gray-100 dark:hover:bg-gray-600 dark:text-gray-400 dark:hover:text-white"
               onclick="loadView('view-container', 'profile')"
-              >My profile</span>
+            >
+              My profile
+            </span>
           </li>
           <li>
             <span
-              href="#"
               class="cursor-pointer block py-2 px-4 text-sm hover:bg-gray-100 dark:hover:bg-gray-600 dark:text-gray-400 dark:hover:text-white"
               onclick="loadView('view-container', 'settings')"
-              >Account settings</span>
+            >
+              Account settings
+            </span>
           </li>
-        </ul>
-        <ul
-          class="py-1 text-gray-700 dark:text-gray-300"
-          aria-labelledby="dropdown"
-        >
           <li>
             <a
               href="auth/password_reset.php"
               class="block py-2 px-4 text-sm hover:bg-gray-100 dark:hover:bg-gray-600 dark:hover:text-white"
-              >Reset Password</a
             >
+              Reset Password
+            </a>
           </li>
           <li>
             <a
               href="auth/logout.php"
               class="block py-2 px-4 text-sm hover:bg-gray-100 dark:hover:bg-gray-600 dark:hover:text-white"
-              >Sign out</a
             >
+              Sign out
+            </a>
           </li>
         </ul>
       </div>

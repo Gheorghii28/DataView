@@ -11,5 +11,8 @@
                 <?php echo htmlspecialchars($column['name']); ?>
             </th>
         <?php endforeach; ?>
+        <th scope="col" class="px-6 py-3">
+            <?php renderDropdownButton($columnTriggerId, $columnAriaLabelledby) ?>
+        </th>
     </tr>
 </thead>
