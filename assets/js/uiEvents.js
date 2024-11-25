@@ -82,4 +82,8 @@ $(document).ready(function () {
             loadView('view-container', 'dashboard');
         }
     });
+
+    $('#user-dropdown li').on('click', function () { // Hides the user dropdown menu when an option is selected
+        $('#user-dropdown').addClass('hidden');
+    });
 });
