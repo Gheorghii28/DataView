@@ -121,4 +121,37 @@ class TableController {
             return jsonResponse(500, $result['message']);
         }
     }    
+
+    public function renameColumn($request) {
+        // Check if the request contains the required parameters
+        if (!isset($request['userId'])) {
+            return jsonResponse(401, 'Unauthorized. User ID is missing.');
+        }
+
+        if (!isset($request['oldName']) || !isset($request['newName']) || !isset($request['tableName'])) {
+            return jsonResponse(400, 'Invalid request. Old name, new name, and table name are required.');
+        }
+
+        $userId = $request['userId'];
+        $tableName = $request['tableName'];
+        $oldName = $request['oldName'];
+        $newName = $request['newName'];
+
+        if (!Validator::validateColumnName($newName)) { // Check if the new column name is valid
+            return jsonResponse(400, 'Invalid new column name. The column name must start with a letter and contain only letters, numbers, and underscores.');
+        }
+
+        $userTables = $this->tableModel->getTablesByUser($userId); // Check if the table exists and the user has permission to edit it
+        if (!in_array($tableName, $userTables)) {
+            return jsonResponse(403, 'Forbidden. You do not have permission to rename a column in this table.');
+        }
+
+        $result = $this->tableModel->renameColumn($oldName, $newName, $tableName); // Call the model method to rename the column
+
+        if ($result['success']) {
+            return jsonResponse(200, $result['message'], ['newColumnName' => $newName]);
+        } else {
+            return jsonResponse(500, $result['message']);
+        }
+    }    
 }

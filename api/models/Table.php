@@ -158,4 +158,34 @@ class Table {
             return ['success' => false, 'message' => 'Error renaming table: ' . $this->mysqli->error];
         }
     }    
+
+    public function getColumnType($tableName, $columnName) {
+        $sql = "DESCRIBE `$tableName` `$columnName`"; // SQL query to retrieve the column type
+        $result = $this->mysqli->query($sql);
+
+        if ($result && $row = $result->fetch_assoc()) {
+            return $row['Type']; // Return the data type of the column
+        } else {
+            return false;
+        }
+    }
+
+    public function renameColumn($oldName, $newName, $tableName) {
+        if (!$this->exists($tableName)) { // Check if the table exists
+            return ['success' => false, 'message' => "Table '$tableName' does not exist."];
+        }
+
+        $columnType = $this->getColumnType($tableName, $oldName); // Retrieve the data type of the old column
+        if ($columnType === false) {
+            return ['success' => false, 'message' => "Column '$oldName' does not exist in table '$tableName'."];
+        }
+    
+        $sql = "ALTER TABLE `$tableName` CHANGE COLUMN `$oldName` `$newName` $columnType"; // SQL command to rename the column
+    
+        if ($this->mysqli->query($sql)) {
+            return ['success' => true, 'message' => "The column '$oldName' in the '$tableName' table has been successfully renamed to '$newName'."];
+        } else {
+            return ['success' => false, 'message' => 'Error renaming column: ' . $this->mysqli->error];
+        }
+    }    
 }

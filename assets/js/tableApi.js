@@ -107,3 +107,29 @@ export function renameTable(baseApiUrl, renameData) {
         }
     });
 }
+
+export function renameColumn(baseApiUrl, renameData, ids) {
+    $.ajax({
+        url: `${baseApiUrl}/api/renameColumn`, // Endpoint for renaming the column
+        method: 'PUT',
+        contentType: 'application/json',
+        data: JSON.stringify(renameData), // Ex: { userId: 1, tableName: 'current_table_name', oldName: 'old_column_name', newName: 'new_column_name' }
+        success: function(response) {
+            if (response.status === 200) {
+                showSuccessMessage(response.message);
+                toggleElementPairVisibility(ids.columnNameDisplay, ids.columnNameInputWrapper); // Hide the input field and show the column name display
+                updateElementTextAndValue(ids.columnNameDisplay, ids.newColumnName, ids.oldColumnName); // Update the displayed column name with the new value
+            } else {
+                showErrorMessage(response.message); // Show error notification for non-200 status
+                console.error("Error: " + response.status + " - " + response.message);
+            }
+        },
+        error: function(xhr, status, error) {
+            toggleElementPairVisibility(ids.columnNameDisplay, ids.columnNameInputWrapper); // Hide the input field and show the column name display
+            const response = JSON.parse(xhr.responseText);
+            const errorMessage = response.message || 'Unknown error';
+            showErrorMessage(errorMessage);
+            console.error("Error renaming the column:", error, "Response:", xhr.responseText);
+        }
+    });
+}

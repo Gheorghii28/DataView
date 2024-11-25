@@ -25,4 +25,8 @@ class Validator {
 
         return preg_match('/^(' . implode('|', $validTypes) . ')(\(\d+\))?$/', $type); // Check for type with or without length (e.g., VARCHAR(255))
     }
+
+    public static function validateColumnName($name) {
+        return preg_match('/^[a-zA-Z][a-zA-Z0-9_]*$/', $name); // The column name must consist only of letters, numbers, and underscores and must start with a letter (no numbers at the beginning).
+    }
 }
