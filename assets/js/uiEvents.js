@@ -1,7 +1,7 @@
 import { tableColumnTemplate } from './templates.js';
 import { getTableData, getConfigData,  focusInputFieldById, toggleElementPairVisibility, getTableDataForDeletion } from './formHelpers.js';
-import { createTable, renameTable, deleteTable, renameColumn } from './tableApi.js';
-import { interactiveColumnHighlightClass } from './constants.js';
+import { createTable, renameTable, deleteTable, renameColumn, addColumn, deleteColumn } from './tableApi.js';
+import { interactiveColumnHighlightClass, interactiveDeleteHighlightClass } from './constants.js';
 
 let renameTableClickListenerEnabled = false; // Tracks whether the outside click listener for renaming the table is active
 let renameColumnClickListenerEnabled = false; // Tracks whether the outside click listener for renaming the column is active
@@ -39,7 +39,7 @@ $(document).ready(function () {
     $('#createTableForm').on('submit', (e) => { // Handle the "Create Table" form submission
         e.preventDefault();
         
-        const { baseApiUrl, tableData } = getTableData(); // Extract API URL and table data from the form
+        const { baseApiUrl, tableData } = getTableData($("input[name='table_name']").val()); // Extract API URL and table data from the form
 
         createTable(baseApiUrl, tableData); // Call the API to create the table
     });
@@ -52,16 +52,39 @@ $(document).ready(function () {
         deleteTable(baseApiUrl, tableData); // Call the API to delete the table
     });    
 
+    $(document).on('submit', '#deleteColumnForm', (e) => { // Handle the "Delete Table" form submission
+        e.preventDefault();
+
+        const { baseApiUrl, tableData } = getTableDataForDeletion();
+        const columnName = $('#deleteColumnConfirmationBtn').data('column-name'); 
+        tableData.columnName = columnName;
+
+        deleteColumn(baseApiUrl, tableData); // Call the API to delete the column
+    });    
+
+    $(document).on('submit', '#addColumnForm', (e) => { // Handle the "Add Column" form submission
+        e.preventDefault();
+
+        const { baseApiUrl, tableData } = getTableData($('#tableNameDisplay').text().replace('Table: ', '').trim()); // Extract API URL and table data from the form
+        addColumn(baseApiUrl, tableData);
+    });
+
     $('#addColumnBtn').on('click', (e) => { // Handle adding new columns dynamically
         e.preventDefault();
 
         $('#columns').append(tableColumnTemplate);
     });
 
+    $(document).on('click', '#addNewColumnBtn', (e) => { // Add a new column input field dynamically when the "Add Another Column" button is clicked
+        e.preventDefault();
+
+        $('#addColumns').append(tableColumnTemplate); // Append the column input template to the form
+    });
+
     $(document).on('click', '.remove-column-btn', (e) => { // Handle removing a column dynamically
         e.preventDefault();
 
-        const columnDiv = $(this).closest('.column');
+        const columnDiv = $(e.target).closest('.column');
         columnDiv.remove();
     });
 
@@ -121,6 +144,27 @@ $(document).ready(function () {
             $('.column-header').removeClass(interactiveColumnHighlightClass); // Remove the interactive highlight class from all column headers
             $('.column-header').off('click'); // Remove the click event listener from all column headers
         });
+    });
+
+    $(document).on('click', '#deleteColumnBtn', function () { // Handle the "Delete Column" button click
+        $('.column-header').addClass(interactiveDeleteHighlightClass); // Add the interactive highlight class to all column headers
+
+        $('.column-header').on('click', function () { // Allow user to select a column to rename
+            const columnName = $(this).data('column-name'); 
+            $('#deleteColumnConfirmationBtn').attr('data-column-name', columnName);
+            $('#deleteColumnConfirmationBtn').click(); // Trigger the click event to show the delete confirmation modal
+            $('.column-header').removeClass(interactiveDeleteHighlightClass); // Remove the interactive highlight class from all column headers
+            $('.column-header').off('click'); // Remove the click event listener from all column headers
+        });
+    });
+
+    $(document).on('click', '#addColumnButton', function () { // Handle the "Add Column" button click
+        $('#columnTriggerId').addClass('hidden');
+        $('#addColumnModalButton').click();
+    });
+
+    $(document).on('click', '#deleteColumnBtn', function () { // Handle the "Delete Column" button click
+        $('#columnTriggerId').addClass('hidden');
     });
 
     $(document).on('click', (e) => { // Handle clicks outside the input field to confirm column renaming

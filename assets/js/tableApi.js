@@ -1,6 +1,7 @@
 import { showSuccessMessage, showErrorMessage } from './notification.js';
 import { resetForm, toggleElementPairVisibility, updateDeleteConfirmation, updateElementTextAndValue } from './formHelpers.js';
 import { tableListItemTemplate } from './templates.js';
+import { loadView } from './viewLoader.js';
 
 export function createTable(baseApiUrl, tableData) {
     $.ajax({
@@ -110,7 +111,7 @@ export function renameTable(baseApiUrl, renameData) {
 
 export function renameColumn(baseApiUrl, renameData, ids) {
     $.ajax({
-        url: `${baseApiUrl}/api/renameColumn`, // Endpoint for renaming the column
+        url: `${baseApiUrl}/api/column`, // Endpoint for renaming the column
         method: 'PUT',
         contentType: 'application/json',
         data: JSON.stringify(renameData), // Ex: { userId: 1, tableName: 'current_table_name', oldName: 'old_column_name', newName: 'new_column_name' }
@@ -119,6 +120,7 @@ export function renameColumn(baseApiUrl, renameData, ids) {
                 showSuccessMessage(response.message);
                 toggleElementPairVisibility(ids.columnNameDisplay, ids.columnNameInputWrapper); // Hide the input field and show the column name display
                 updateElementTextAndValue(ids.columnNameDisplay, ids.newColumnName, ids.oldColumnName); // Update the displayed column name with the new value
+                loadView('view-container', 'table', renameData.tableName);
             } else {
                 showErrorMessage(response.message); // Show error notification for non-200 status
                 console.error("Error: " + response.status + " - " + response.message);
@@ -133,3 +135,53 @@ export function renameColumn(baseApiUrl, renameData, ids) {
         }
     });
 }
+
+export function addColumn(baseApiUrl, tableData) {
+    $.ajax({
+        url: `${baseApiUrl}/api/column`,
+        method: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify(tableData),
+        success: function(response) {
+            if (response.status === 200) {
+                resetForm('#formAddColumnModal');
+                showSuccessMessage(response.message);
+                loadView('view-container', 'table', tableData.name);
+            } else {
+                showErrorMessage(response.message);
+                console.error("Error: " + response.status + " - " + response.message);
+            }
+        },
+        error: function(xhr, status, error) {
+            const response = JSON.parse(xhr.responseText);
+            const errorMessage = response.message || 'Unknown error';
+            showErrorMessage(errorMessage);
+            console.error("Error adding the column:", error, "Response:", xhr.responseText);
+        }
+    });
+}
+
+export function deleteColumn(baseApiUrl, tableData) {
+    $.ajax({
+        url: `${baseApiUrl}/api/column`,
+        method: 'DELETE',
+        contentType: 'application/json',
+        data: JSON.stringify(tableData), // Ex: { "userId": 1, "tableName": "example_table", "columnName": "age" }
+        success: function(response) {
+            if (response.status === 200) {
+                showSuccessMessage(response.message);
+                loadView('view-container', 'table', tableData.tableName);
+            } else {
+                showErrorMessage(response.message);
+                console.error("Error: " + response.status + " - " + response.message);
+            }
+        },
+        error: function(xhr, status, error) {
+            const response = JSON.parse(xhr.responseText);
+            const errorMessage = response.message || 'Unknown error';
+            showErrorMessage(errorMessage);
+            console.error("Error adding the column:", error, "Response:", xhr.responseText);
+        }
+    });
+}
+  

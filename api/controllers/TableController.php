@@ -154,4 +154,62 @@ class TableController {
             return jsonResponse(500, $result['message']);
         }
     }    
+
+    public function addColumn($request) {
+        // Check if the required data is present
+        if (!isset($request['userId'])) { 
+            return jsonResponse(401, 'Unauthorized. User ID is missing.');
+        }
+
+        if (!isset($request['name']) || !isset($request['columns'])) {
+            return jsonResponse(400, 'Invalid request. Table name and columns are required.');
+        }
+
+        $userId = $request['userId'];
+        $tableName = $request['name'];
+        $columns = $request['columns'];  // An array of column names and types
+
+        // Verify if the table belongs to the user
+        $userTables = $this->tableModel->getTablesByUser($userId);
+        if (!in_array($tableName, $userTables)) {
+            return jsonResponse(403, 'Forbidden. You do not have permission to add columns to this table.');
+        }
+
+        $result = $this->tableModel->addColumn($tableName, $columns); // Add columns to the table
+
+        if ($result['success']) {
+            return jsonResponse(200, $result['message']);
+        } else {
+            return jsonResponse(500, $result['message']);
+        }
+    }
+
+    public function deleteColumn($request) {
+        // Check if the required parameters are present
+        if (!isset($request['userId'])) {
+            return jsonResponse(401, 'Unauthorized. User ID is missing.');
+        }
+    
+        if (!isset($request['tableName']) || !isset($request['columnName'])) {
+            return jsonResponse(400, 'Invalid request. Table name and column name are required.');
+        }
+    
+        $userId = $request['userId'];
+        $tableName = $request['tableName'];
+        $columnName = $request['columnName'];
+    
+        // Verify if the table belongs to the user
+        $userTables = $this->tableModel->getTablesByUser($userId);
+        if (!in_array($tableName, $userTables)) {
+            return jsonResponse(403, 'Forbidden. You do not have permission to delete columns in this table.');
+        }
+    
+        $result = $this->tableModel->deleteColumn($tableName, $columnName); // Delete the column
+    
+        if ($result['success']) {
+            return jsonResponse(200, $result['message']);
+        } else {
+            return jsonResponse(500, $result['message']);
+        }
+    }    
 }

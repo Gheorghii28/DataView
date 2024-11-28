@@ -62,23 +62,30 @@ if ($uri[1] === 'table') {
             echo json_encode(['message' => 'Method not allowed.']);
             break;
     }
-} else if ($uri[1] === 'renameColumn') {
+} else if ($uri[1] === 'column') {
     require_once __DIR__ . '/../controllers/TableController.php';
 
     $tableController = new TableController();
 
     switch ($requestMethod) {
+        case 'POST':
+            $requestData = json_decode(file_get_contents('php://input'), true);
+            echo $tableController->addColumn($requestData);
+            break;
         case 'PUT':
             $requestData = json_decode(file_get_contents('php://input'), true);
             echo $tableController->renameColumn($requestData);
+            break;
+        case 'DELETE':
+            $requestData = json_decode(file_get_contents('php://input'), true);
+            echo $tableController->deleteColumn($requestData);
             break;
 
         default:
             echo json_encode(['message' => 'Method not allowed.']);
             break;
     }
-}
- else {
+} else {
     echo json_encode(['message' => 'Endpoint not found.']);
 }
 

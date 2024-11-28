@@ -4,9 +4,21 @@ export function resetForm(modalSelector) {
     $(modalSelector + " .clearable").val('');
 }
 
-export function getTableData() {
+export function getTableData(tableName) {
     const { baseApiUrl, userId } = getConfigData();
-    const tableName = $("input[name='table_name']").val();
+    const columns = getColumnsData();
+
+    return {
+        baseApiUrl: baseApiUrl,
+        tableData: {
+            name: tableName,
+            columns: columns,
+            userId: userId,
+        },
+    };
+}
+
+export function getColumnsData() {
     const columns = {};
 
     $("input[name='column_name[]']").each(function (index) {
@@ -17,14 +29,7 @@ export function getTableData() {
         }
     });
 
-    return {
-        baseApiUrl: baseApiUrl,
-        tableData: {
-            name: tableName,
-            columns: columns,
-            userId: userId,
-        },
-    };
+    return columns;
 }
 
 export function getTableDataForDeletion() {

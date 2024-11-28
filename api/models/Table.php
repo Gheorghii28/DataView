@@ -188,4 +188,41 @@ class Table {
             return ['success' => false, 'message' => 'Error renaming column: ' . $this->mysqli->error];
         }
     }    
+
+    public function addColumn($tableName, $columns) {
+        if (!$this->exists($tableName)) { // Check if the table exists
+            return ['success' => false, 'message' => "Table '$tableName' does not exist."];
+        }
+
+        foreach ($columns as $columnName => $columnType) {
+            $sql = "ALTER TABLE `$tableName` ADD `$columnName` $columnType"; // SQL query to add columns
+            
+            if (!$this->mysqli->query($sql)) {
+                return ['success' => false, 'message' => 'Error adding column: ' . $this->mysqli->error];
+            }
+        }
+
+        return ['success' => true, 'message' => 'Columns successfully added to the table.'];
+    }
+
+    public function deleteColumn($tableName, $columnName) {
+        if (!$this->exists($tableName)) { // Check if the table exists
+            return ['success' => false, 'message' => "Table '$tableName' does not exist."];
+        }
+    
+        // Check if the column exists
+        $sqlCheckColumn = "SHOW COLUMNS FROM `$tableName` LIKE '$columnName'";
+        $result = $this->mysqli->query($sqlCheckColumn);
+        if ($result->num_rows === 0) {
+            return ['success' => false, 'message' => "Column '$columnName' does not exist in table '$tableName'."];
+        }
+    
+        // Delete the column
+        $sql = "ALTER TABLE `$tableName` DROP COLUMN `$columnName`";
+        if ($this->mysqli->query($sql)) {
+            return ['success' => true, 'message' => "Column '$columnName' has been successfully deleted from table '$tableName'."];
+        } else {
+            return ['success' => false, 'message' => 'Error deleting column: ' . $this->mysqli->error];
+        }
+    }    
 }
