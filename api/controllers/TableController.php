@@ -212,4 +212,77 @@ class TableController {
             return jsonResponse(500, $result['message']);
         }
     }    
+
+    public function storeRow($request) {
+        if (!isset($request['userId'])) {
+            return jsonResponse(401, 'Unauthorized. User ID is missing.');
+        }
+
+        if (!isset($request['name']) || !isset($request['data'])) {
+            return jsonResponse(400, 'Invalid request. Table name and data are required.');
+        }
+
+        $userId = $request['userId'];
+        $tableName = $request['name'];
+        $rowData = $request['data'];
+
+        $userTables = $this->tableModel->getTablesByUser($userId);
+        if (!in_array($tableName, $userTables)) {
+            return jsonResponse(403, 'Forbidden. You do not have permission to add rows to this table.');
+        }
+
+        $result = $this->tableModel->insertRow($tableName, $rowData);
+
+        if ($result['success']) {
+            return jsonResponse(200, 'Row successfully added.', ['rowId' => $result['id']]);
+        } else {
+            return jsonResponse(500, 'Failed to add row: ' . $result['message']);
+        }
+    }
+
+    public function updateRow($request) {
+        if (!isset($request['userId'])) {
+            return jsonResponse(401, 'Unauthorized. User ID is missing.');
+        }
+    
+        if (!isset($request['name']) || !isset($request['data']) || !isset($request['rowId'])) {
+            return jsonResponse(400, 'Invalid request. Table name, row ID, and data are required.');
+        }
+    
+        $userId = $request['userId'];
+        $tableName = $request['name'];
+        $rowId = $request['rowId'];
+        $rowData = $request['data'];
+    
+        $userTables = $this->tableModel->getTablesByUser($userId);
+        if (!in_array($tableName, $userTables)) {
+            return jsonResponse(403, 'Forbidden. You do not have permission to update rows in this table.');
+        }
+    
+        $result = $this->tableModel->updateRow($tableName, $rowId, $rowData);
+    
+        if ($result['success']) {
+            return jsonResponse(200, 'Row successfully updated.');
+        } else {
+            return jsonResponse(500, 'Failed to update row: ' . $result['message']);
+        }
+    }    
+
+    public function deleteRow($request) {
+        if (!isset($request['name']) || !isset($request['rowId']) || !isset($request['userId'])) {
+            return json_encode(['status' => 400, 'message' => 'Missing required parameters.']);
+        }
+    
+        $tableName = $request['name'];
+        $rowId = (int) $request['rowId'];
+        $userId = (int) $request['userId'];
+    
+        $result = $this->tableModel->deleteRow($tableName, $rowId, $userId);
+    
+        if ($result['success']) {
+            return json_encode(['status' => 200, 'message' => $result['message']]);
+        } else {
+            return json_encode(['status' => 400, 'message' => $result['message']]);
+        }
+    }
 }

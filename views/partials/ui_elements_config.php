@@ -15,6 +15,14 @@
         'column_name' => htmlspecialchars($table_name),
         'form_id' => 'deleteColumnForm',
     ];
+
+    $delete_row_modal_config = [
+        'delete_button_id' => 'deleteRowConfirmationBtn',
+        'modal_id' => 'deleteRowModal',
+        'delete_message' => 'Are you sure you want to delete this row?',
+        'table_name' => htmlspecialchars($table_name),
+        'form_id' => 'deleteRowForm',
+    ];
     
     $tableTriggerId = 'tableTriggerId';
     $tableAriaLabelledby = 'tableAriaLabelledby';
@@ -29,6 +37,14 @@
         ['id' => 'renameColumnBtn', 'label' => 'Rename Column'],
         ['id' => 'addColumnButton', 'label' => 'Add Column'],
         ['id' => 'deleteColumnBtn', 'label' => 'Delete Column'],
+        ['id' => 'addRowButton', 'label' => 'Add New Data'],
+    ];
+
+    $rowTriggerId = 'rowTriggerId';
+    $rowAriaLabelledby = 'rowAriaLabelledby';
+    $rowActionMenuItems = [ // Define the row action menu items
+        ['id' => 'renameRowBtn', 'label' => 'Edit Row Data'],
+        ['id' => 'deleteRowBtn', 'label' => 'Delete Row Data'],
     ];
 
     function renderDropdownMenu($actionMenuItems, $triggerId, $ariaLabelledby) {

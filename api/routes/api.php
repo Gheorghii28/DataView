@@ -85,6 +85,28 @@ if ($uri[1] === 'table') {
             echo json_encode(['message' => 'Method not allowed.']);
             break;
     }
+} else if ($uri[1] === 'rows') {
+    require_once __DIR__ . '/../controllers/TableController.php';
+
+    $tableController = new TableController();
+
+    switch ($requestMethod) {
+        case 'POST':
+            $requestData = json_decode(file_get_contents('php://input'), true);
+            echo $tableController->storeRow($requestData);
+            break;
+        case 'PUT':
+            $requestData = json_decode(file_get_contents('php://input'), true);
+            echo $tableController->updateRow($requestData);
+            break;
+        case 'DELETE':
+            $requestData = json_decode(file_get_contents('php://input'), true);
+            echo $tableController->deleteRow($requestData);
+            break;
+        default:
+            echo json_encode(['message' => 'Method not allowed.']);
+            break;
+    }
 } else {
     echo json_encode(['message' => 'Endpoint not found.']);
 }

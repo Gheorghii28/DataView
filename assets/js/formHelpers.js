@@ -74,3 +74,25 @@ export function updateDeleteConfirmation(formSelector, deleteMessage, newTableNa
     $(formSelector).attr(`data-${dataAttribute}`, newTableName); // Update the data attribute of the form
     $('#deleteMessage').text(deleteMessage); // Update the delete confirmation message
 }
+
+export function getRowData(tableName, data) {
+    const { baseApiUrl, userId } = getConfigData();
+    data.user_id = userId;
+    return {
+        baseApiUrl: baseApiUrl,
+        rowData: {
+            name: tableName,
+            userId: userId,
+            data: data,
+        }
+    };
+}
+
+export function getRowId(button) {
+    const buttonId = $(button).attr('id'); // Get the ID of the clicked button
+    return buttonId.split('-')[1]; // Extract and return the row ID
+}
+
+export function getTableName() {
+    return $('#tableNameDisplay').text().replace('Table: ', '').trim();
+}

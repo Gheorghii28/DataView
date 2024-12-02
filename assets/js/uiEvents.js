@@ -1,6 +1,6 @@
 import { tableColumnTemplate } from './templates.js';
-import { getTableData, getConfigData,  focusInputFieldById, toggleElementPairVisibility, getTableDataForDeletion } from './formHelpers.js';
-import { createTable, renameTable, deleteTable, renameColumn, addColumn, deleteColumn } from './tableApi.js';
+import { getTableData, getConfigData,  focusInputFieldById, toggleElementPairVisibility, getTableDataForDeletion, getRowData, getRowId, getTableName } from './formHelpers.js';
+import { createTable, renameTable, deleteTable, renameColumn, addColumn, deleteColumn, saveRowData, deleteRow, updateRowData } from './tableApi.js';
 import { interactiveColumnHighlightClass, interactiveDeleteHighlightClass } from './constants.js';
 
 let renameTableClickListenerEnabled = false; // Tracks whether the outside click listener for renaming the table is active
@@ -61,11 +61,23 @@ $(document).ready(function () {
 
         deleteColumn(baseApiUrl, tableData); // Call the API to delete the column
     });    
+    
+    $(document).on('submit', '#deleteRowForm', (e) => { // Handle the "Delete Row" form submission
+        e.preventDefault();
+
+        const { baseApiUrl, userId } = getConfigData(); // Get configuration data (API URL and user ID)
+        const tableName = $('#deleteRowForm').data('table-name'); 
+        const rowId = $('#deleteRowForm').data('row-id'); 
+        const rowData = { name: tableName, userId: userId, rowId: rowId }
+
+        deleteRow(baseApiUrl, rowData); // Call the API to delete the row
+    });    
 
     $(document).on('submit', '#addColumnForm', (e) => { // Handle the "Add Column" form submission
         e.preventDefault();
 
-        const { baseApiUrl, tableData } = getTableData($('#tableNameDisplay').text().replace('Table: ', '').trim()); // Extract API URL and table data from the form
+        const tableName = getTableName();
+        const { baseApiUrl, tableData } = getTableData(tableName); // Extract API URL and table data from the form
         addColumn(baseApiUrl, tableData);
     });
 
@@ -103,9 +115,10 @@ $(document).ready(function () {
     $(document).on('click', (e) => { // Handle clicks outside the input field to confirm renaming
         if (renameTableClickListenerEnabled && !$(e.target).closest('#tableNameInputWrapper, #renameTableBtn').length) { // Check if the click happened outside the input field and the rename button
             const { baseApiUrl, userId } = getConfigData(); // Get configuration data (API URL and user ID)
+            const tableName = getTableName();
             const renameData = {
                 userId: userId, // ID of the current user
-                oldName: $('#tableNameDisplay').text().replace('Table: ', '').trim(), // Current table name
+                oldName: tableName, // Current table name
                 newName: $('#newTableName').val().trim()  // New table name entered by the user
             };
             if(renameData.oldName !== renameData.newName) {
@@ -147,6 +160,7 @@ $(document).ready(function () {
     });
 
     $(document).on('click', '#deleteColumnBtn', function () { // Handle the "Delete Column" button click
+        $('#columnTriggerId').addClass('hidden');
         $('.column-header').addClass(interactiveDeleteHighlightClass); // Add the interactive highlight class to all column headers
 
         $('.column-header').on('click', function () { // Allow user to select a column to rename
@@ -163,8 +177,90 @@ $(document).ready(function () {
         $('#addColumnModalButton').click();
     });
 
-    $(document).on('click', '#deleteColumnBtn', function () { // Handle the "Delete Column" button click
-        $('#columnTriggerId').addClass('hidden');
+    $(document).on('dblclick', '#loopRow-new', function () { // Close the inputs row on double-click
+        $('#loopRow-new').addClass('hidden');
+
+        $('#loopRow-new').closest('tr').find('input').each(function() { // Reset input fields
+            if ($(this).attr('type') === 'checkbox') {
+                $(this).prop('checked', false); // Reset checkboxes
+            } else {
+                $(this).val(''); // Clear text fields and other input types
+            }
+        });
+    });
+
+    $(document).on('click', '#addRowButton', function () { // Handle the "Add New Data" button click
+        toggleElementPairVisibility('loopRow-new', 'columnTriggerId');
+        $('.column-input-field').first().focus();
+    });
+
+    $(document).on('click', '[id^="addDataBtn-"]', function () { // Handle click to confirm row adding
+        const rowId = getRowId(this);
+        const inputsData = {};
+        let isValid = true;
+
+        $(`#loopRow-${rowId}`).closest('tr').find('input').each(function() { // Iterate through each input field in the current row
+            const inputName = $(this).attr('name');
+            let inputValue = $(this).val();
+
+            if (!inputValue && $(this).attr('type') !== 'checkbox') { // Check if the field is empty
+                $(this).focus(); // Focus the empty input field
+                isValid = false;
+                return false;
+            }
+
+            if ($(this).attr('type') === 'checkbox') { // Handle checkboxes to store true/false values
+                inputValue = $(this).prop('checked') ? 1 : 0;
+            }
+
+            inputsData[inputName] = inputValue; // Save the data to the inputsData object
+        });
+
+        if (!isValid) {
+            return; // Abort processing if a field is empty
+        }
+        const tableName = getTableName();
+        const { baseApiUrl, rowData } = getRowData(tableName, inputsData); // Get base API URL and prepare row data
+        
+        if (rowId === 'new') {
+            saveRowData(baseApiUrl, rowData);
+        } else if (Number.isInteger(parseInt(rowId))) {
+            rowData.rowId = rowId;
+            updateRowData(baseApiUrl, rowData);
+        }
+    });
+
+    $(document).on('click', '[id^="deleteRowBtn-"]', function () { // Handle row deletion button click
+        const rowId = getRowId(this);
+
+        $('#deleteRowConfirmationBtn').click(); // Trigger the click event to show the delete confirmation modal
+        $('#deleteRowForm').attr('data-row-id', rowId);
+    });    
+
+    $(document).on('click', '[id^="renameRowBtn-"]', function () { // Handle row rename button click
+        const rowId = getRowId(this);
+        const inputField = $(`#loopRow-${rowId} .column-input-field`).first();
+
+        inputField.focus()[0].setSelectionRange(inputField.val().length, inputField.val().length);
+        $(`#rowTriggerId${rowId}`).addClass('hidden');
+        toggleElementPairVisibility(`loopRow-${rowId}`, `row-${rowId}`);
+    });
+    
+    $(document).on('dblclick', '[id^="loopRow-"]', function () { // Close the row on double-click
+        const rowId = getRowId(this);
+        toggleElementPairVisibility(`row-${rowId}`, `loopRow-${rowId}`);
+
+        $(`#loopRow-${rowId}`).closest('tr').find('input').each(function() { // Reset input fields
+            if ($(this).attr('type') === 'checkbox') {
+                // Reset checkbox to its original state
+                const originalChecked = $(this).attr('data-original') === 'true';
+                $(this).prop('checked', originalChecked);
+            } else {
+                // Reset the value for other input types
+                const originalValue = $(this).attr('data-original');
+                $(this).val(originalValue);
+            }
+        });
     });
 
     $(document).on('click', (e) => { // Handle clicks outside the input field to confirm column renaming
@@ -172,9 +268,10 @@ $(document).ready(function () {
 
             if (!$(e.target).closest('.column-header').length) { // Check if the click happened outside the input field
                 const { baseApiUrl, userId } = getConfigData(); // Get configuration data (API URL and user ID)
+                const tableName = getTableName();
                 const renameData = {
                     userId: userId, // ID of the current user
-                    tableName: $('#tableNameDisplay').text().replace('Table: ', '').trim(), // Current table name
+                    tableName: tableName, // Current table name
                     oldName: $(`#${selectedColumnIds.columnNameDisplay}`).text().trim(), // Current column name
                     newName: $(`#${selectedColumnIds.newColumnName}`).val().trim()  // New column name entered by the user
                 };

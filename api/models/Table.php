@@ -225,4 +225,101 @@ class Table {
             return ['success' => false, 'message' => 'Error deleting column: ' . $this->mysqli->error];
         }
     }    
+
+    public function insertRow($tableName, $data) {
+        $columns = array_keys($data);
+        $values = array_values($data);
+
+        $columnsList = implode(", ", array_map(fn($col) => "`$col`", $columns));
+        $placeholders = implode(", ", array_fill(0, count($values), '?'));
+
+        $sql = "INSERT INTO `$tableName` ($columnsList) VALUES ($placeholders)";
+        $stmt = $this->mysqli->prepare($sql);
+
+        if (!$stmt) {
+            return ['success' => false, 'message' => $this->mysqli->error];
+        }
+
+        $types = '';
+        $bindValues = [];
+        foreach ($values as $value) {
+            if (is_int($value)) {
+                $types .= 'i';
+            } elseif (is_float($value)) {
+                $types .= 'd';
+            } else {
+                $types .= 's';
+            }
+            $bindValues[] = $value;
+        }
+
+        $stmt->bind_param($types, ...$bindValues);
+
+        if ($stmt->execute()) {
+            return ['success' => true, 'id' => $stmt->insert_id];
+        } else {
+            return ['success' => false, 'message' => $stmt->error];
+        }
+    }
+
+    public function updateRow($tableName, $rowId, $data) {
+        $columns = array_keys($data);
+        $values = array_values($data);
+    
+        $setClause = implode(", ", array_map(fn($col) => "`$col` = ?", $columns));
+        $sql = "UPDATE `$tableName` SET $setClause WHERE `id` = ?";
+
+        $stmt = $this->mysqli->prepare($sql);
+    
+        if (!$stmt) {
+            return ['success' => false, 'message' => $this->mysqli->error];
+        }
+    
+        $types = '';
+        $bindValues = [];
+        foreach ($values as $value) {
+            if (is_int($value)) {
+                $types .= 'i';
+            } elseif (is_float($value)) {
+                $types .= 'd';
+            } else {
+                $types .= 's';
+            }
+            $bindValues[] = $value;
+        }
+    
+        $types .= 'i';
+        $bindValues[] = $rowId;
+
+        $stmt->bind_param($types, ...$bindValues);
+    
+        if ($stmt->execute()) {
+            return ['success' => true];
+        } else {
+            return ['success' => false, 'message' => $stmt->error];
+        }
+    }       
+
+    public function deleteRow($tableName, $rowId, $userId) {
+        $tableName = $this->mysqli->real_escape_string($tableName);
+    
+        $sql = "DELETE FROM `$tableName` WHERE `id` = ? AND `user_id` = ?";
+        $stmt = $this->mysqli->prepare($sql);
+    
+        if (!$stmt) {
+            return ['success' => false, 'message' => $this->mysqli->error];
+        }
+    
+        $stmt->bind_param('ii', $rowId, $userId);
+    
+        if ($stmt->execute()) {
+            if ($stmt->affected_rows > 0) {
+                return ['success' => true, 'message' => 'Row deleted successfully.'];
+            } else {
+                return ['success' => false, 'message' => 'No row found or you do not have permission to delete this row.'];
+            }
+        } else {
+            return ['success' => false, 'message' => $stmt->error];
+        }
+    }    
 }

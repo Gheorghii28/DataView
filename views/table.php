@@ -23,6 +23,8 @@
         
         $delete_modal_config = $delete_column_modal_config;
         include 'partials/modals/delete_confirmation.php';
+        $delete_modal_config = $delete_row_modal_config;
+        include 'partials/modals/delete_confirmation.php';
         include 'partials/modals/forms/form_add_column.php';
     ?>
 <?php endif; ?>

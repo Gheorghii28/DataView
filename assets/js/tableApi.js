@@ -184,4 +184,76 @@ export function deleteColumn(baseApiUrl, tableData) {
         }
     });
 }
+
+export function saveRowData(baseApiUrl, rowData) {
+    $.ajax({
+        url: `${baseApiUrl}/api/rows`,
+        method: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify(rowData),
+        success: function(response) {
+            if (response.status === 200) {
+                showSuccessMessage(response.message);
+                loadView('view-container', 'table', rowData.name);
+            } else {
+                showErrorMessage(response.message);
+                console.error("Error: " + response.status + " - " + response.message);
+            }
+        },
+        error: function(xhr, status, error) {
+            const response = JSON.parse(xhr.responseText);
+            const errorMessage = response.message || 'Unknown error';
+            showErrorMessage(errorMessage);
+            console.error("Error adding the row:", error, "Response:", xhr.responseText);
+        }
+    });
+}
+
+export function updateRowData(baseApiUrl, rowData) {
+    $.ajax({
+        url: `${baseApiUrl}/api/rows`,
+        method: 'PUT',
+        contentType: 'application/json',
+        data: JSON.stringify(rowData),
+        success: function(response) {
+            if (response.status === 200) {
+                showSuccessMessage(response.message);
+                loadView('view-container', 'table', rowData.name);
+            } else {
+                showErrorMessage(response.message);
+                console.error("Error: " + response.status + " - " + response.message);
+            }
+        },
+        error: function(xhr, status, error) {
+            const response = JSON.parse(xhr.responseText);
+            const errorMessage = response.message || 'Unknown error';
+            showErrorMessage(errorMessage);
+            console.error("Error updating the row:", error, "Response:", xhr.responseText);
+        }
+    });
+}
+
+export function deleteRow(baseApiUrl, rowData) {
+    $.ajax({
+        url: `${baseApiUrl}/api/rows`,
+        method: 'DELETE',
+        contentType: 'application/json',
+        data: JSON.stringify(rowData),
+        success: function(response) {
+            if (response.status === 200) {
+                showSuccessMessage(response.message);
+                loadView('view-container', 'table', rowData.name);
+            } else {
+                showErrorMessage(response.message);
+                console.error("Error: " + response.status + " - " + response.message);
+            }
+        },
+        error: function(xhr, status, error) {
+            const response = JSON.parse(xhr.responseText);
+            const errorMessage = response.message || 'Unknown error';
+            showErrorMessage(errorMessage);
+            console.error("Error deleting the column:", error, "Response:", xhr.responseText);
+        }
+    });
+}
   
