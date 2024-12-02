@@ -1,3 +1,5 @@
+import { getConfigData } from "./utils/configUtils.js";
+
 export function resetForm(modalSelector) {
     $(modalSelector).click();
     $(modalSelector + " .removable").remove();
@@ -10,7 +12,7 @@ export function getTableData(tableName) {
 
     return {
         baseApiUrl: baseApiUrl,
-        tableData: {
+        data: {
             name: tableName,
             columns: columns,
             userId: userId,
@@ -38,22 +40,11 @@ export function getTableDataForDeletion() {
 
     return {
         baseApiUrl: baseApiUrl,
-        tableData: {
+        data: {
             tableName: tableName,
             userId: userId,
         },
     };
-}
-
-export function getConfigData() {
-    const baseApiUrl = $('#config').data('api-url');
-    const userId = $('#config').data('user-id');
-    return { baseApiUrl, userId };
-}
-
-export function toggleElementPairVisibility(showElementId, hideElementId) {
-    $(`#${showElementId}`).removeClass('hidden'); // Show the specified element by removing the 'hidden' class
-    $(`#${hideElementId}`).addClass('hidden'); // Hide the other element by adding the 'hidden' class
 }
 
 export function updateElementTextAndValue(displayElementId, inputElementId, oldValueElementId, prefix = '') {
@@ -62,12 +53,6 @@ export function updateElementTextAndValue(displayElementId, inputElementId, oldV
     if (oldValueElementId) {
         $(`#${oldValueElementId}`).val(newValue); // Update the value of the old element
     }
-}
-
-export function focusInputFieldById(inputId) {
-    $(`#${inputId}`).focus(); // Focus on the input field with the provided ID
-    const input = $(`#${inputId}`)[0];
-    input.setSelectionRange(input.value.length, input.value.length); // Set the cursor to the end of the text in the input field
 }
 
 export function updateDeleteConfirmation(formSelector, deleteMessage, newTableName, dataAttribute) {
@@ -95,4 +80,16 @@ export function getRowId(button) {
 
 export function getTableName() {
     return $('#tableNameDisplay').text().replace('Table: ', '').trim();
+}
+
+export function resetInputs($row) {
+    $row.find('input').each(function () {
+        if ($(this).attr('type') === 'checkbox') {
+            const originalChecked = $(this).attr('data-original') === 'true';
+            $(this).prop('checked', originalChecked);
+        } else {
+            const originalValue = $(this).attr('data-original') || '';
+            $(this).val(originalValue);
+        }
+    });
 }

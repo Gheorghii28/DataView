@@ -1,53 +1,56 @@
 import { showSuccessMessage, showErrorMessage } from './notification.js';
-import { resetForm, toggleElementPairVisibility, updateDeleteConfirmation, updateElementTextAndValue } from './formHelpers.js';
+import { resetForm, updateDeleteConfirmation, updateElementTextAndValue } from './formHelpers.js';
 import { tableListItemTemplate } from './templates.js';
 import { loadView } from './viewLoader.js';
+import { toggleElementPairVisibility } from './utils/domUtils.js';
 
-export function createTable(baseApiUrl, tableData) {
+// Reusable AJAX function
+function ajaxRequest({ baseApiUrl, endpoint, method, data, loadViewallowed = false, successCallback }) {
     $.ajax({
-        url: `${baseApiUrl}/api/table`,
-        method: 'POST',
+        url: `${baseApiUrl}${endpoint}`,
+        method: method,
         contentType: 'application/json',
-        data: JSON.stringify(tableData),
+        data: JSON.stringify(data),
         success: function (response) {
-            if (response.status == 200) {
-                resetForm('#formCreateTableModal');
-                showSuccessMessage(response.message);
-                getUserTables(baseApiUrl, tableData.userId);
+            if (response.status === 200) {
+                showSuccessMessage(response.message, loadViewallowed);
+                if (successCallback) successCallback(response);
             } else {
                 showErrorMessage(response.message);
-                console.error("Error: " + response.status + " - " + response.message);
+                console.error(`Error: ${response.status} - ${response.message}`);
             }
         },
         error: function (xhr, status, error) {
-            const response = JSON.parse(xhr.responseText);
+            const response = JSON.parse(xhr.responseText || '{}');
             const errorMessage = response.message || 'Unknown error';
             showErrorMessage(errorMessage);
-            console.error("Error creating the table:", error, "Response:", xhr.responseText);
+            console.error(`Error: ${error}`, "Response:", xhr.responseText);
+        }
+    });
+}
+
+export function createTable(baseApiUrl, tableData) {
+    ajaxRequest({
+        baseApiUrl,
+        endpoint: '/api/table',
+        method: 'POST',
+        data: tableData,
+        successCallback: () => {
+            resetForm('#formCreateTableModal');
+            getUserTables(baseApiUrl, tableData.userId);
         }
     });
 }
 
 export function deleteTable(baseApiUrl, tableData) {
-    $.ajax({
-        url: `${baseApiUrl}/api/table`,
+    ajaxRequest({
+        baseApiUrl,
+        endpoint: '/api/table',
         method: 'DELETE',
-        contentType: 'application/json',
-        data: JSON.stringify(tableData), // Ex: { userId: 1, tableName: 'table_name' }
-        success: function (response) {
-            if (response.status == 200) {
-                showSuccessMessage(response.message, true);
-                getUserTables(baseApiUrl, tableData.userId); // Update the user's table list
-            } else {
-                showErrorMessage(response.message); // Show error notification for non-200 status
-                console.error("Error: " + response.status + " - " + response.message);
-            }
-        },
-        error: function (xhr, status, error) {
-            const response = JSON.parse(xhr.responseText);
-            const errorMessage = response.message || 'Unknown error';
-            showErrorMessage(errorMessage);
-            console.error("Error creating the table:", error, "Response:", xhr.responseText);
+        data: tableData,
+        loadViewallowed: true,
+        successCallback: () => {
+            getUserTables(baseApiUrl, tableData.userId);
         }
     });
 }
@@ -77,183 +80,89 @@ export function getUserTables(baseApiUrl, userId) {
 }
 
 export function renameTable(baseApiUrl, renameData) {
-    $.ajax({
-        url: `${baseApiUrl}/api/renameTable`, // Endpoint for renaming the table
+    ajaxRequest({
+        baseApiUrl,
+        endpoint: '/api/renameTable',
         method: 'PUT',
-        contentType: 'application/json',
-        data: JSON.stringify(renameData), // Ex: { userId: 1, oldName: 'old_table_name', newName: 'new_table_name' }
-        success: function(response) {
-            if (response.status === 200) {
-                showSuccessMessage(response.message);
-                getUserTables(baseApiUrl, renameData.userId); // Update the user's table list
-                toggleElementPairVisibility('tableNameDisplay', 'tableNameInputWrapper'); // Hide the input field and show the table name display
-                updateElementTextAndValue('tableNameDisplay', 'newTableName', 'oldTableName', 'Table: '); // Update the displayed table name with the new value
-                updateDeleteConfirmation( // Updates the delete confirmation modal with the new table name and message
-                    '#deleteTableForm', 
-                    `Are you sure you want to delete the table  "${response.data.newTableName}" ?`, 
-                    response.data.newTableName, 
-                    'table-name'
-                );
-            } else {
-                showErrorMessage(response.message); // Show error notification for non-200 status
-                console.error("Error: " + response.status + " - " + response.message);
-            }
-        },
-        error: function(xhr, status, error) {
-            toggleElementPairVisibility('tableNameDisplay', 'tableNameInputWrapper'); // Hide the input field and show the table name display
-            const response = JSON.parse(xhr.responseText);
-            const errorMessage = response.message || 'Unknown error';
-            showErrorMessage(errorMessage);
-            console.error("Error renaming the table:", error, "Response:", xhr.responseText);
+        data: renameData,
+        successCallback: (response) => {
+            getUserTables(baseApiUrl, renameData.userId);
+            toggleElementPairVisibility('tableNameDisplay', 'tableNameInputWrapper');
+            updateElementTextAndValue('tableNameDisplay', 'newTableName', 'oldTableName', 'Table: ');
+            updateDeleteConfirmation(
+                '#deleteTableForm',
+                `Are you sure you want to delete the table "${response.data.newTableName}"?`,
+                response.data.newTableName,
+                'table-name'
+            );
         }
     });
 }
 
 export function renameColumn(baseApiUrl, renameData, ids) {
-    $.ajax({
-        url: `${baseApiUrl}/api/column`, // Endpoint for renaming the column
+    ajaxRequest({
+        baseApiUrl,
+        endpoint: '/api/column',
         method: 'PUT',
-        contentType: 'application/json',
-        data: JSON.stringify(renameData), // Ex: { userId: 1, tableName: 'current_table_name', oldName: 'old_column_name', newName: 'new_column_name' }
-        success: function(response) {
-            if (response.status === 200) {
-                showSuccessMessage(response.message);
-                toggleElementPairVisibility(ids.columnNameDisplay, ids.columnNameInputWrapper); // Hide the input field and show the column name display
-                updateElementTextAndValue(ids.columnNameDisplay, ids.newColumnName, ids.oldColumnName); // Update the displayed column name with the new value
-                loadView('view-container', 'table', renameData.tableName);
-            } else {
-                showErrorMessage(response.message); // Show error notification for non-200 status
-                console.error("Error: " + response.status + " - " + response.message);
-            }
-        },
-        error: function(xhr, status, error) {
-            toggleElementPairVisibility(ids.columnNameDisplay, ids.columnNameInputWrapper); // Hide the input field and show the column name display
-            const response = JSON.parse(xhr.responseText);
-            const errorMessage = response.message || 'Unknown error';
-            showErrorMessage(errorMessage);
-            console.error("Error renaming the column:", error, "Response:", xhr.responseText);
+        data: renameData,
+        successCallback: () => {
+            toggleElementPairVisibility(ids.columnNameDisplay, ids.columnNameInputWrapper);
+            updateElementTextAndValue(ids.columnNameDisplay, ids.newColumnName, ids.oldColumnName);
+            loadView('view-container', 'table', renameData.tableName);
         }
     });
 }
 
 export function addColumn(baseApiUrl, tableData) {
-    $.ajax({
-        url: `${baseApiUrl}/api/column`,
+    ajaxRequest({
+        baseApiUrl,
+        endpoint: '/api/column',
         method: 'POST',
-        contentType: 'application/json',
-        data: JSON.stringify(tableData),
-        success: function(response) {
-            if (response.status === 200) {
-                resetForm('#formAddColumnModal');
-                showSuccessMessage(response.message);
-                loadView('view-container', 'table', tableData.name);
-            } else {
-                showErrorMessage(response.message);
-                console.error("Error: " + response.status + " - " + response.message);
-            }
-        },
-        error: function(xhr, status, error) {
-            const response = JSON.parse(xhr.responseText);
-            const errorMessage = response.message || 'Unknown error';
-            showErrorMessage(errorMessage);
-            console.error("Error adding the column:", error, "Response:", xhr.responseText);
+        data: tableData,
+        successCallback: () => {
+            resetForm('#formAddColumnModal');
+            loadView('view-container', 'table', tableData.name);
         }
     });
 }
 
 export function deleteColumn(baseApiUrl, tableData) {
-    $.ajax({
-        url: `${baseApiUrl}/api/column`,
+    ajaxRequest({
+        baseApiUrl,
+        endpoint: '/api/column',
         method: 'DELETE',
-        contentType: 'application/json',
-        data: JSON.stringify(tableData), // Ex: { "userId": 1, "tableName": "example_table", "columnName": "age" }
-        success: function(response) {
-            if (response.status === 200) {
-                showSuccessMessage(response.message);
-                loadView('view-container', 'table', tableData.tableName);
-            } else {
-                showErrorMessage(response.message);
-                console.error("Error: " + response.status + " - " + response.message);
-            }
-        },
-        error: function(xhr, status, error) {
-            const response = JSON.parse(xhr.responseText);
-            const errorMessage = response.message || 'Unknown error';
-            showErrorMessage(errorMessage);
-            console.error("Error adding the column:", error, "Response:", xhr.responseText);
-        }
+        data: tableData,
+        successCallback: () => loadView('view-container', 'table', tableData.tableName)
     });
 }
 
 export function saveRowData(baseApiUrl, rowData) {
-    $.ajax({
-        url: `${baseApiUrl}/api/rows`,
+    ajaxRequest({
+        baseApiUrl,
+        endpoint: '/api/rows',
         method: 'POST',
-        contentType: 'application/json',
-        data: JSON.stringify(rowData),
-        success: function(response) {
-            if (response.status === 200) {
-                showSuccessMessage(response.message);
-                loadView('view-container', 'table', rowData.name);
-            } else {
-                showErrorMessage(response.message);
-                console.error("Error: " + response.status + " - " + response.message);
-            }
-        },
-        error: function(xhr, status, error) {
-            const response = JSON.parse(xhr.responseText);
-            const errorMessage = response.message || 'Unknown error';
-            showErrorMessage(errorMessage);
-            console.error("Error adding the row:", error, "Response:", xhr.responseText);
-        }
+        data: rowData,
+        successCallback: () => loadView('view-container', 'table', rowData.name)
     });
 }
 
 export function updateRowData(baseApiUrl, rowData) {
-    $.ajax({
-        url: `${baseApiUrl}/api/rows`,
+    ajaxRequest({
+        baseApiUrl,
+        endpoint: '/api/rows',
         method: 'PUT',
-        contentType: 'application/json',
-        data: JSON.stringify(rowData),
-        success: function(response) {
-            if (response.status === 200) {
-                showSuccessMessage(response.message);
-                loadView('view-container', 'table', rowData.name);
-            } else {
-                showErrorMessage(response.message);
-                console.error("Error: " + response.status + " - " + response.message);
-            }
-        },
-        error: function(xhr, status, error) {
-            const response = JSON.parse(xhr.responseText);
-            const errorMessage = response.message || 'Unknown error';
-            showErrorMessage(errorMessage);
-            console.error("Error updating the row:", error, "Response:", xhr.responseText);
-        }
+        data: rowData,
+        successCallback: () => loadView('view-container', 'table', rowData.name)
     });
 }
 
 export function deleteRow(baseApiUrl, rowData) {
-    $.ajax({
-        url: `${baseApiUrl}/api/rows`,
+    ajaxRequest({
+        baseApiUrl,
+        endpoint: '/api/rows',
         method: 'DELETE',
-        contentType: 'application/json',
-        data: JSON.stringify(rowData),
-        success: function(response) {
-            if (response.status === 200) {
-                showSuccessMessage(response.message);
-                loadView('view-container', 'table', rowData.name);
-            } else {
-                showErrorMessage(response.message);
-                console.error("Error: " + response.status + " - " + response.message);
-            }
-        },
-        error: function(xhr, status, error) {
-            const response = JSON.parse(xhr.responseText);
-            const errorMessage = response.message || 'Unknown error';
-            showErrorMessage(errorMessage);
-            console.error("Error deleting the column:", error, "Response:", xhr.responseText);
-        }
+        data: rowData,
+        successCallback: () => loadView('view-container', 'table', rowData.name)
     });
 }
   
