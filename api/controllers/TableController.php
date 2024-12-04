@@ -227,7 +227,8 @@ class TableController {
         $rowData = $request['data'];
 
         $userTables = $this->tableModel->getTablesByUser($userId);
-        if (!in_array($tableName, $userTables)) {
+        $tableNames = array_column($userTables, 'name');
+        if (!in_array($tableName, $tableNames)) {
             return jsonResponse(403, 'Forbidden. You do not have permission to add rows to this table.');
         }
 
