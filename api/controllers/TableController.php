@@ -63,7 +63,8 @@ class TableController {
     
         // Verify that the table belongs to the user
         $userTables = $this->tableModel->getTablesByUser($userId);
-        if (!in_array($tableName, $userTables)) {
+        $tableNames = array_column($userTables, 'name');
+        if (!in_array($tableName, $tableNames)) {
             return jsonResponse(403, 'Forbidden. You do not have permission to delete this table.');
         }
     
@@ -109,7 +110,8 @@ class TableController {
         }
     
         $userTables = $this->tableModel->getTablesByUser($userId);
-        if (!in_array($oldName, $userTables)) { // Check if the table belongs to the user
+        $tableNames = array_column($userTables, 'name');
+        if (!in_array($oldName, $tableNames)) { // Check if the table belongs to the user
             return jsonResponse(403, 'Forbidden. You do not have permission to rename this table.');
         }
     
@@ -142,7 +144,8 @@ class TableController {
         }
 
         $userTables = $this->tableModel->getTablesByUser($userId); // Check if the table exists and the user has permission to edit it
-        if (!in_array($tableName, $userTables)) {
+        $tableNames = array_column($userTables, 'name');
+        if (!in_array($tableName, $tableNames)) {
             return jsonResponse(403, 'Forbidden. You do not have permission to rename a column in this table.');
         }
 
@@ -171,7 +174,8 @@ class TableController {
 
         // Verify if the table belongs to the user
         $userTables = $this->tableModel->getTablesByUser($userId);
-        if (!in_array($tableName, $userTables)) {
+        $tableNames = array_column($userTables, 'name');
+        if (!in_array($tableName, $tableNames)) {
             return jsonResponse(403, 'Forbidden. You do not have permission to add columns to this table.');
         }
 
@@ -200,7 +204,8 @@ class TableController {
     
         // Verify if the table belongs to the user
         $userTables = $this->tableModel->getTablesByUser($userId);
-        if (!in_array($tableName, $userTables)) {
+        $tableNames = array_column($userTables, 'name');
+        if (!in_array($tableName, $tableNames)) {
             return jsonResponse(403, 'Forbidden. You do not have permission to delete columns in this table.');
         }
     
@@ -256,7 +261,8 @@ class TableController {
         $rowData = $request['data'];
     
         $userTables = $this->tableModel->getTablesByUser($userId);
-        if (!in_array($tableName, $userTables)) {
+        $tableNames = array_column($userTables, 'name');
+        if (!in_array($tableName, $tableNames)) {
             return jsonResponse(403, 'Forbidden. You do not have permission to update rows in this table.');
         }
     
@@ -286,4 +292,59 @@ class TableController {
             return json_encode(['status' => 400, 'message' => $result['message']]);
         }
     }
+
+    public function updateTableOrder($request) {
+        if (!isset($request['userId']) || !isset($request['order'])) {
+            return jsonResponse(400, 'Invalid request. User ID and new order are required.');
+        }
+    
+        $userId = $request['userId'];
+        $newOrder = $request['order'];
+    
+        if (!is_array($newOrder)) {
+            return jsonResponse(400, 'Invalid order format. Expected an array of table indices.');
+        }
+    
+        $success = $this->tableModel->updateTableOrder($userId, $newOrder);
+    
+        if ($success) {
+            return jsonResponse(200, 'Table order updated successfully.');
+        } else {
+            return jsonResponse(500, 'Failed to update table order.');
+        }
+    }
+
+    public function updateColumnOrder($request) {
+        if (!isset($request['tableName']) || !isset($request['order']) || !is_array($request['order'])) {
+            return jsonResponse(400, 'Invalid request. Table name and column order are required.');
+        }
+    
+        $tableName = $request['tableName'];
+        $newOrder = $request['order'];
+    
+        $success = $this->tableModel->reorderColumns($tableName, $newOrder);
+    
+        if ($success) {
+            return jsonResponse(200, 'Column order updated successfully.');
+        }
+    
+        return jsonResponse(500, 'Failed to update column order.');
+    }
+
+    public function updateRowOrder($request) {
+        if (!isset($request['tableName']) || !isset($request['order']) || !is_array($request['order'])) {
+            return jsonResponse(400, 'Invalid request. Table name and row order are required.');
+        }
+    
+        $tableName = $request['tableName'];
+        $newOrder = $request['order'];
+    
+        $success = $this->tableModel->reorderRows($tableName, $newOrder);
+    
+        if ($success) {
+            return jsonResponse(200, 'Row order updated successfully.');
+        }
+    
+        return jsonResponse(500, 'Failed to update row order.');
+    }      
 }

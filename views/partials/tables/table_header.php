@@ -1,9 +1,9 @@
 <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
-    <tr>
+    <tr id="column-list-container">
         <?php foreach ($data['columns'] as $index => $column): ?>
             <?php 
                 // Filter out columns you don't want to display
-                if (in_array($column['name'], ['id', 'created_at', 'user_id'])) {
+                if (in_array($column['name'], ['id', 'created_at', 'user_id', 'display_order'])) {
                     continue;
                 }
                 

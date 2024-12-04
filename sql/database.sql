@@ -10,5 +10,6 @@ CREATE TABLE user_tables (
     user_id INT NOT NULL,
     table_name VARCHAR(255) NOT NULL UNIQUE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    table_order INT DEFAULT NULL,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );

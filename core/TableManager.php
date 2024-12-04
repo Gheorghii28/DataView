@@ -44,7 +44,7 @@ class TableManager {
 
     // Retrieve the rows of a table
     public function getTableRows($table_name) {
-        $query = "SELECT * FROM `" . $this->db->real_escape_string($table_name) . "`";
+        $query = "SELECT * FROM `" . $this->db->real_escape_string($table_name) . "` ORDER BY `display_order` ASC";
         $result = $this->db->query($query);
 
         if ($result) {

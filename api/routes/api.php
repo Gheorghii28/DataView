@@ -40,8 +40,10 @@ if ($uri[1] === 'table') {
 
             echo $tableController->getUserTables($userId);
             break;
-
-        // Add additional methods like PUT or DELETE here as needed
+        case 'POST':
+            $requestData = json_decode(file_get_contents('php://input'), true);
+            echo $tableController->updateTableOrder($requestData);
+            break;
 
         default:
             echo json_encode(['message' => 'Method not allowed.']);
@@ -103,6 +105,36 @@ if ($uri[1] === 'table') {
             $requestData = json_decode(file_get_contents('php://input'), true);
             echo $tableController->deleteRow($requestData);
             break;
+        default:
+            echo json_encode(['message' => 'Method not allowed.']);
+            break;
+    }
+} else if ($uri[1] === 'reorder' && $uri[2] === 'columns') {
+    require_once __DIR__ . '/../controllers/TableController.php';
+
+    $tableController = new TableController();
+
+    switch ($requestMethod) {
+        case 'POST':
+            $requestData = json_decode(file_get_contents('php://input'), true);
+            echo $tableController->updateColumnOrder($requestData);
+            break;
+
+        default:
+            echo json_encode(['message' => 'Method not allowed.']);
+            break;
+    }
+} else if ($uri[1] === 'reorder' && $uri[2] === 'rows') {
+    require_once __DIR__ . '/../controllers/TableController.php';
+
+    $tableController = new TableController();
+
+    switch ($requestMethod) {
+        case 'POST':
+            $requestData = json_decode(file_get_contents('php://input'), true);
+            echo $tableController->updateRowOrder($requestData);
+            break;
+
         default:
             echo json_encode(['message' => 'Method not allowed.']);
             break;

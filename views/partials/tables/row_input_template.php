@@ -6,7 +6,7 @@
     <?php foreach ($data['columns'] as $column): ?>
         <?php 
             // Filter out columns you don't want to display
-            if (in_array($column['name'], ['id', 'created_at', 'user_id'])) {
+            if (in_array($column['name'], ['id', 'created_at', 'user_id', 'display_order'])) {
                 continue;
             }
 

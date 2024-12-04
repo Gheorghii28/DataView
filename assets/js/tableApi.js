@@ -1,8 +1,9 @@
 import { showSuccessMessage, showErrorMessage } from './notification.js';
-import { resetForm, updateDeleteConfirmation, updateElementTextAndValue } from './formHelpers.js';
+import { getTableName, resetForm, updateDeleteConfirmation, updateElementTextAndValue } from './formHelpers.js';
 import { tableListItemTemplate } from './templates.js';
 import { loadView } from './viewLoader.js';
 import { toggleElementPairVisibility } from './utils/domUtils.js';
+import { initTableSortable } from './sortable.js';
 
 // Reusable AJAX function
 function ajaxRequest({ baseApiUrl, endpoint, method, data, loadViewallowed = false, successCallback }) {
@@ -64,11 +65,12 @@ export function getUserTables(baseApiUrl, userId) {
                 const tableListContainer = $('#table-list-container');
                 tableListContainer.empty();
 
-                response.data.forEach(function(tableName) {
-                    const tableItem = tableListItemTemplate(tableName);
+                response.data.forEach(function(table, index) {
+                    const tableItem = tableListItemTemplate(table.name, table.id);
                     tableListContainer.append(tableItem);
                 });
 
+                initTableSortable(saveTableOrder);
             } else {
                 console.error("Error: " + response.status + " - " + response.message);
             }
@@ -165,4 +167,61 @@ export function deleteRow(baseApiUrl, rowData) {
         successCallback: () => loadView('view-container', 'table', rowData.name)
     });
 }
-  
+
+function saveTableOrder(baseApiUrl, userId, newOrder) {
+    $.ajax({
+        url: `${baseApiUrl}/api/user/tables`,
+        method: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify({
+            userId: userId,
+            order: newOrder,
+        }),
+        success: function(response) {
+            getUserTables(baseApiUrl, userId);
+        },
+        error: function(xhr, status, error) {
+            console.error("Error updating the order:", error);
+        }
+    });
+}
+
+export function saveColumnOrder(baseApiUrl, userId, newOrder) {
+    const tableName = getTableName();
+    $.ajax({
+        url: `${baseApiUrl}/api/reorder/columns`,
+        method: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify({
+            userId: userId,
+            tableName: tableName,
+            order: newOrder,
+        }),
+        success: function(response) {
+            loadView('view-container', 'table', tableName);
+        },
+        error: function(xhr, status, error) {
+            console.error("Error updating the order:", error);
+        }
+    });
+}
+
+export function saveRowOrder(baseApiUrl, userId, newOrder) {
+    const tableName = getTableName();
+    $.ajax({
+        url: `${baseApiUrl}/api/reorder/rows`,
+        method: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify({
+            userId: userId,
+            tableName: tableName,
+            order: newOrder,
+        }),
+        success: function(response) {
+            loadView('view-container', 'table', tableName);
+        },
+        error: function(xhr, status, error) {
+            console.error("Error updating the order:", error);
+        }
+    });
+}

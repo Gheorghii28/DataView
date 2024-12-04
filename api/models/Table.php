@@ -16,6 +16,7 @@ class Table {
         $columnsSQL = "`id` INT AUTO_INCREMENT PRIMARY KEY, ";
         $columnsSQL .= "`created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP, ";
         $columnsSQL .= "`user_id` INT NOT NULL, ";
+        $columnsSQL .= "`display_order` INT DEFAULT 0, "; // Add display_order column
 
         // Add user-defined columns
         $columnsSQL .= implode(", ", array_map(
@@ -115,7 +116,7 @@ class Table {
 
     public function getTablesByUser($userId) {
         // SQL query to retrieve the user's tables
-        $query = "SELECT table_name FROM user_tables WHERE user_id = ?";
+        $query = "SELECT id AS table_id, table_name FROM user_tables WHERE user_id = ? ORDER BY table_order ASC";
         $stmt = $this->mysqli->prepare($query);
 
         if (!$stmt) {
@@ -129,7 +130,10 @@ class Table {
 
         $tables = []; // Array to store table names
         while ($row = $result->fetch_assoc()) {
-            $tables[] = $row['table_name'];
+            $tables[] = [ // Append each table's data (id and name) to the tables array
+                'id' => $row['table_id'],
+                'name' => $row['table_name']
+            ];
         }
 
         $stmt->close();
@@ -322,4 +326,107 @@ class Table {
             return ['success' => false, 'message' => $stmt->error];
         }
     }    
+
+    public function updateTableOrder($userId, $newOrder) {
+        $this->mysqli->begin_transaction();
+    
+        try {
+            foreach ($newOrder as $index => $tableId) {
+                $query = "UPDATE user_tables SET table_order = ? WHERE user_id = ? AND id = ?";
+                $stmt = $this->mysqli->prepare($query);
+    
+                if (!$stmt) {
+                    throw new Exception("Prepare failed: " . $this->mysqli->error);
+                }
+    
+                $stmt->bind_param('iii', $index, $userId, $tableId);
+                if (!$stmt->execute()) {
+                    throw new Exception("Execute failed: " . $stmt->error);
+                }
+    
+                $stmt->close();
+            }
+    
+            $this->mysqli->commit();
+            return true;
+    
+        } catch (Exception $e) {
+            $this->mysqli->rollback();
+            error_log("Error updating table order: " . $e->getMessage());
+            return false;
+        }
+    }  
+    
+    public function reorderColumns($tableName, $newOrder) {
+        $columnMetaQuery = "SHOW COLUMNS FROM `$tableName`";
+        $result = $this->mysqli->query($columnMetaQuery);
+    
+        if (!$result) {
+            error_log("Failed to fetch column metadata: " . $this->mysqli->error);
+            return false;
+        }
+    
+        $columnData = [];
+        while ($row = $result->fetch_assoc()) {
+            $columnData[$row['Field']] = [
+                'type' => $row['Type'],
+                'null' => $row['Null'] === 'YES' ? 'NULL' : 'NOT NULL',
+                'default' => $row['Default'] !== null ? "DEFAULT '{$row['Default']}'" : '',
+                'extra' => $row['Extra'],
+            ];
+        }
+    
+        $result->free();
+    
+        foreach ($newOrder as $index => $columnName) {
+            if (!isset($columnData[$columnName])) {
+                error_log("Column $columnName does not exist in table $tableName.");
+                return false;
+            }
+    
+            $columnInfo = $columnData[$columnName];
+            $afterColumn = $index > 0 ? $newOrder[$index - 1] : null;
+    
+            $query = $afterColumn
+                ? "ALTER TABLE `$tableName` MODIFY COLUMN `$columnName` {$columnInfo['type']} {$columnInfo['null']} {$columnInfo['default']} {$columnInfo['extra']} AFTER `$afterColumn`"
+                : "ALTER TABLE `$tableName` MODIFY COLUMN `$columnName` {$columnInfo['type']} {$columnInfo['null']} {$columnInfo['default']} {$columnInfo['extra']} FIRST";
+    
+            if (!$this->mysqli->query($query)) {
+                error_log("Failed to reorder column $columnName: " . $this->mysqli->error);
+                return false;
+            }
+        }
+    
+        return true;
+    }
+
+    public function reorderRows($tableName, $newOrder) {
+        $this->mysqli->begin_transaction();
+    
+        try {
+            foreach ($newOrder as $index => $rowId) {
+                $query = "UPDATE `$tableName` SET display_order = ? WHERE id = ?";
+                $stmt = $this->mysqli->prepare($query);
+    
+                if (!$stmt) {
+                    throw new Exception("Prepare failed: " . $this->mysqli->error);
+                }
+    
+                $stmt->bind_param('ii', $index, $rowId);
+                if (!$stmt->execute()) {
+                    throw new Exception("Execute failed: " . $stmt->error);
+                }
+    
+                $stmt->close();
+            }
+    
+            $this->mysqli->commit();
+            return true;
+    
+        } catch (Exception $e) {
+            $this->mysqli->rollback();
+            error_log("Error updating row order: " . $e->getMessage());
+            return false;
+        }
+    }  
 }
