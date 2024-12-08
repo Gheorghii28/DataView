@@ -29,6 +29,8 @@
     $tableActionMenuItems = [ // Define the table action menu items
         ['id' => 'renameTableBtn', 'label' => 'Rename Table'],
         ['id' => 'deleteTableBtn', 'label' => 'Delete Table'],
+        ['id' => 'viewPdfBtn', 'label' => 'View PDF', 'action' => 'S'],
+        ['id' => 'downloadPdfBtn', 'label' => 'Download PDF', 'action' => 'D'],
     ];
     
     $columnTriggerId = 'columnTriggerId';

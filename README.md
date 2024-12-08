@@ -16,7 +16,7 @@
 - **Backend**: PHP (without frameworks)
 - **Frontend**: Tailwind CSS, Flowbite, Chart.js, jQuery, AJAX
 - **Database**: MySQL
-- **PDF Generation**: PHP libraries like FPDF or TCPDF
+- **PDF Generation**: PHP libraries like TCPDF
 
 ## Installation
 

@@ -15,4 +15,6 @@ export const selectors = {
     renameRowButton: '[id^="renameRowBtn-"]',
     successModalToggle: '[data-modal-toggle="successModal"]',
     userDropdownItem: '#user-dropdown li',
+    viewPdfBtn: '#viewPdfBtn',
+    downloadPdfBtn: '#downloadPdfBtn',
 };

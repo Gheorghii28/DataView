@@ -3,7 +3,7 @@ import { createTable, renameTable, deleteTable, renameColumn, addColumn, deleteC
 import { handleFormSubmission, handleOutsideClick, toggleElementPairVisibility } from './utils/domUtils.js';
 import { addColumnHandler, addNewColumnHandler, deleteColumnHandler, removeColumnHandler, renameColumnHandler } from './handlers/columnHandlers.js';
 import { attachClickHandler } from './utils/eventUtils.js';
-import { addColumnButtonHandler, addRowButtonHandler, deleteTableHandler, renameTableHandler, successModalToggleHandler, userDropdownHandler } from './handlers/tableHandlers.js';
+import { addColumnButtonHandler, addRowButtonHandler, deleteTableHandler, downloadPdfHandler, renameTableHandler, successModalToggleHandler, userDropdownHandler, viewPdfHandler } from './handlers/tableHandlers.js';
 import { addDataHandler, deleteRowHandler, renameRowHandler } from './handlers/rowHandlers.js';
 import { disableRenameColumnClickListener, disableRenameTableClickListener, getSelectedColumnIds, isRenameColumnClickListenerEnabled, isRenameTableClickListenerEnabled, updateSelectedColumnIds } from './state/clickListenerState.js';
 import { getConfigData } from './utils/configUtils.js';
@@ -48,6 +48,8 @@ $(document).ready(function () {
     attachClickHandler(selectors.addDataButton, addDataHandler);
     attachClickHandler(selectors.deleteRowButton, deleteRowHandler);
     attachClickHandler(selectors.renameRowButton, renameRowHandler);
+    attachClickHandler(selectors.viewPdfBtn, viewPdfHandler);
+    attachClickHandler(selectors.downloadPdfBtn, downloadPdfHandler);
 
     $(document).on('dblclick', '#loopRow-new', function () { // Close the inputs row on double-click
         const $row = $('#loopRow-new');

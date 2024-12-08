@@ -49,6 +49,32 @@ class TableController {
         return jsonResponse(500, "Failed to create table.");
     }
 
+    public function getTableData($userId, $tableName) {
+        if (!$userId) {
+            return jsonResponse(401, 'Unauthorized. User ID is missing.');
+        }
+
+        if (!$tableName) {
+            return jsonResponse(400, 'Invalid request. Table name is required.');
+        }
+
+        $userTables = $this->tableModel->getTablesByUser($userId);
+        $tableNames = array_column($userTables, 'name');
+        if (!in_array($tableName, $tableNames)) {
+            return jsonResponse(403, 'Forbidden. You do not have permission to access this table.');
+        }
+
+        $columns = $this->tableModel->getColumns($tableName);
+        $rows = $this->tableModel->getRows($tableName, $userId);
+
+        $data = [
+            'columns' => $columns,
+            'rows' => $rows
+        ];
+
+        return jsonResponse(200, 'Table data fetched successfully.', $data);
+    }
+
     public function delete($request) {
         if (!isset($request['userId'])) { // Check if the request contains a user ID
             return jsonResponse(401, 'Unauthorized. User ID is missing.');

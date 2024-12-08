@@ -53,6 +53,40 @@ class Table {
         return $exists;
     }
 
+    public function getColumns($tableName) {
+        $sql = "DESCRIBE `$tableName`";
+        $result = $this->mysqli->query($sql);
+
+        if (!$result) {
+            die('Query error: ' . $this->mysqli->error);
+        }
+
+        $columns = [];
+        while ($row = $result->fetch_assoc()) {
+            $columns[] = [
+                'name' => $row['Field'],
+                'type' => $row['Type']
+            ];
+        }
+
+        return $columns;
+    }
+
+    public function getRows($tableName, $userId) {
+        $sql = "SELECT * FROM `$tableName` WHERE user_id = ?";
+        $stmt = $this->mysqli->prepare($sql);
+        $stmt->bind_param("i", $userId);
+        $stmt->execute();
+        $result = $stmt->get_result();
+
+        $rows = [];
+        while ($row = $result->fetch_assoc()) {
+            $rows[] = $row;
+        }
+
+        return $rows;
+    }
+
     public function saveTable($userId, $tableName) {
         // Prepare the SQL query
         $query = "INSERT INTO user_tables (user_id, table_name) VALUES (?, ?)";

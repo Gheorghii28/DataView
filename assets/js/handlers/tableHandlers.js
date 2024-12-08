@@ -1,5 +1,7 @@
 import { enableRenameTableClickListener } from "../state/clickListenerState.js";
+import { exportTableAsPDF, getTable } from "../tableApi.js";
 import { toggleAndFocus, toggleElementPairVisibility } from "../utils/domUtils.js";
+import { sendPdfDownloadRequest } from "../utils/pdfUtils.js";
 
 export function renameTableHandler(e) {
     e.preventDefault();
@@ -30,4 +32,22 @@ export function successModalToggleHandler() {
 
 export function userDropdownHandler() {
     $('#user-dropdown').addClass('hidden');
+}
+
+export function viewPdfHandler() {
+    const url = '../../export/export_pdf.php';
+    const action = $(this).data('action');
+    
+    getTable(function(tableData, tableName) {
+        exportTableAsPDF(url, action, tableData, tableName);
+    });
+}
+
+export function downloadPdfHandler() {
+    const url = '../../export/export_pdf.php';
+    const action = $(this).data('action');
+
+    getTable(function(tableData, tableName) {
+        sendPdfDownloadRequest(url, action, tableData, tableName);
+    });
 }

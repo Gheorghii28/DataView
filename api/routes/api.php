@@ -13,6 +13,17 @@ if ($uri[1] === 'table') {
             $requestData = json_decode(file_get_contents('php://input'), true);
             echo $tableController->create($requestData);
             break;
+        case 'GET':
+            $userId = isset($_GET['userId']) ? intval($_GET['userId']) : null;
+            $tableName = isset($_GET['tableName']) ? $_GET['tableName'] : null;
+
+            if (!$userId || !$tableName) {
+                echo json_encode(['status' => 400, 'message' => 'User ID or Table Name is missing']);
+                return;
+            }
+
+            echo $tableController->getTableData($userId, $tableName);
+            break;
         case 'DELETE':
             $requestData = json_decode(file_get_contents('php://input'), true);
             echo $tableController->delete($requestData);

@@ -4,6 +4,8 @@ import { tableListItemTemplate } from './templates.js';
 import { loadView } from './viewLoader.js';
 import { toggleElementPairVisibility } from './utils/domUtils.js';
 import { initTableSortable } from './sortable.js';
+import { getConfigData } from './utils/configUtils.js';
+import { openPdfFromBase64 } from './utils/pdfUtils.js';
 
 // Reusable AJAX function
 function ajaxRequest({ baseApiUrl, endpoint, method, data, loadViewallowed = false, successCallback }) {
@@ -222,6 +224,43 @@ export function saveRowOrder(baseApiUrl, userId, newOrder) {
         },
         error: function(xhr, status, error) {
             console.error("Error updating the order:", error);
+        }
+    });
+}
+
+export function getTable(callback) {
+    const tableName = getTableName();
+    const { baseApiUrl, userId } = getConfigData();
+    const url = `${baseApiUrl}/api/table?userId=${encodeURIComponent(userId)}&tableName=${encodeURIComponent(tableName)}`;
+
+    $.ajax({
+        url: url,
+        method: 'GET',
+        contentType: 'application/json',
+
+        success: function(response) {
+            callback(response.data, tableName);
+        },
+        error: function(xhr, status, error) {
+            console.error("Error getting the table:", error);
+        }
+    });
+}
+
+export function exportTableAsPDF(url, action, tableData, tableName) {
+    $.ajax({
+        url: url,
+        method: 'POST',
+        data: {
+            action: action,
+            tableName: tableName,
+            tableData: JSON.stringify(tableData)
+        },
+        success: function(response) {
+            openPdfFromBase64(response.pdf_base64);
+        },
+        error: function(xhr, status, error) {
+            console.error("Error during export:", error);
         }
     });
 }
