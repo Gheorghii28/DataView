@@ -25,7 +25,7 @@ $(document).ready(function () {
         const { baseApiUrl, userId } = getConfigData();
         const tableName = $('#deleteRowForm').data('table-name');
         const rowId = $('#deleteRowForm').data('row-id');
-        const rowData = { name: tableName, userId, rowId };
+        const rowData = { tableName: tableName, userId, rowId };
         return { baseApiUrl, data: rowData };
     });
     handleFormSubmission('#addColumnForm', addColumn, () => { // "Add Column" form

@@ -125,7 +125,7 @@ export function addColumn(baseApiUrl, tableData) {
         data: tableData,
         successCallback: () => {
             resetForm('#formAddColumnModal');
-            loadView('view-container', 'table', tableData.name);
+            loadView('view-container', 'table', tableData.tableName);
         }
     });
 }
@@ -146,7 +146,7 @@ export function saveRowData(baseApiUrl, rowData) {
         endpoint: '/api/rows',
         method: 'POST',
         data: rowData,
-        successCallback: () => loadView('view-container', 'table', rowData.name)
+        successCallback: () => loadView('view-container', 'table', rowData.tableName)
     });
 }
 
@@ -156,7 +156,7 @@ export function updateRowData(baseApiUrl, rowData) {
         endpoint: '/api/rows',
         method: 'PUT',
         data: rowData,
-        successCallback: () => loadView('view-container', 'table', rowData.name)
+        successCallback: () => loadView('view-container', 'table', rowData.tableName)
     });
 }
 
@@ -166,7 +166,7 @@ export function deleteRow(baseApiUrl, rowData) {
         endpoint: '/api/rows',
         method: 'DELETE',
         data: rowData,
-        successCallback: () => loadView('view-container', 'table', rowData.name)
+        successCallback: () => loadView('view-container', 'table', rowData.tableName)
     });
 }
 

@@ -2,7 +2,7 @@
 
 $action = $_POST['action'];
 $tableName = $_POST['tableName'];
-$pdfUrl = 'tabelle_'. htmlspecialchars($tableName, ENT_QUOTES, 'UTF-8') .'.pdf';
+$pdfUrl = 'table_'. htmlspecialchars($tableName, ENT_QUOTES, 'UTF-8') .'.pdf';
 $tableData = json_decode($_POST['tableData'], true);
 
 $html = '<h1>'. htmlspecialchars($tableName, ENT_QUOTES, 'UTF-8') .'</h1>';

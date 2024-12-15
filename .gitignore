@@ -14,3 +14,7 @@ vendor/
 
 # Ignore all .txt files
 *.txt
+
+# Ignore the generated directory structure file
+generate_tree.php
+project_structure.txt

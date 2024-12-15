@@ -27,11 +27,17 @@ if (!defined('BASE_API_URL')) {
 $mysql_db = new mysqli(DB_SERVER, DB_USERNAME, DB_PASSWORD, DB_NAME);
 
 if ($mysql_db->connect_error) {
-    die("Error: Unable to connect " . $mysql_db->connect_error);
+    throw new Exception("Error: Unable to connect to the database. " . $mysql_db->connect_error);
 }
 
 // Return an array with all the configuration details
 return [
     'db_connection' => $mysql_db,
     'base_api_url' => BASE_API_URL,
+    'db' => [
+        'hostname' => DB_SERVER,
+        'username' => DB_USERNAME,
+        'password' => DB_PASSWORD,
+        'database' => DB_NAME
+    ]
 ];

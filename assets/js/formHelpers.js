@@ -13,7 +13,7 @@ export function getTableData(tableName) {
     return {
         baseApiUrl: baseApiUrl,
         data: {
-            name: tableName,
+            tableName: tableName,
             columns: columns,
             userId: userId,
         },
@@ -66,7 +66,7 @@ export function getRowData(tableName, data) {
     return {
         baseApiUrl: baseApiUrl,
         rowData: {
-            name: tableName,
+            tableName: tableName,
             userId: userId,
             data: data,
         }
