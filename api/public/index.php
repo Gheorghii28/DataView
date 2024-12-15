@@ -1,13 +1,24 @@
 <?php
-header('Content-Type: application/json');
-header("Access-Control-Allow-Origin: *");
-header("Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS");
-header("Access-Control-Allow-Headers: Content-Type, Authorization"); 
 
-$uri = explode('/', trim($_SERVER['REQUEST_URI'], '/')); // Split the URL into parts
+namespace Api;
 
-if (isset($uri[0]) && $uri[0] === 'api') { // Check if the request is an API call
-    require_once __DIR__ . '/../routes/api.php'; // Forward to the API processing file
-} else {
-    echo json_encode(['message' => 'Invalid API route.']);
-}
+require __DIR__ . '/../../vendor/autoload.php';
+
+use Api\Core\Response;
+
+// Global Error & Exception Handling
+set_exception_handler(function ($e) {
+    error_log($e->getMessage());
+    Response::internalError('Unexpected server error:'. $e->getMessage());
+});
+
+set_error_handler(function ($errno, $errstr, $errfile, $errline) {
+    error_log("$errstr in $errfile on line $errline");
+    Response::internalError("Unexpected server error: $errstr in $errfile on line $errline");
+});
+
+require __DIR__ . '/../config/middleware.php';
+
+$router = require __DIR__ . '/../config/routes.php';
+
+$router->run($_SERVER['REQUEST_METHOD'], $_SERVER['REQUEST_URI']);
