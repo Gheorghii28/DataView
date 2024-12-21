@@ -6,6 +6,13 @@
     "autoload": {
         "psr-4": {
             "Api\\": "api/"
-        }
+        },
+        "classmap": [
+            "api/",
+            "assets/"
+        ]
+    },
+    "require-dev": {
+        "phpunit/phpunit": "11"
     }
 }

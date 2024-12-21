@@ -2,6 +2,7 @@
 
 namespace Api\Controller;
 
+use Api\Core\DbConnection;
 use Api\Helper\Helper;
 use Api\Core\Response;
 use Api\Helper\Validator;
@@ -11,6 +12,18 @@ use Api\Model\Row;
 
 class TableController
 {
+    private $db;
+    private $tableModel;
+    private $columnModel;
+    private $rowModel;
+
+    public function __construct() {
+        $this->db = DbConnection::getInstance();
+        $this->tableModel = new Table($this->db);
+        $this->columnModel = new Column($this->db, $this->tableModel);
+        $this->rowModel = new Row($this->db);
+    }
+
     public function create($request) {
         $data = Validator::validateAndExtractRequest($request, ['userId', 'tableName', 'columns']);
         if (!is_array($data)) return $data;
@@ -25,17 +38,17 @@ class TableController
             Response::error('Invalid columns. Ensure valid names and SQL types.');
         }
 
-        if (Table::exists($tableName)) {
+        if ($this->tableModel->exists($tableName)) {
             Response::conflict("Table '$tableName' already exists.");
         }
 
-        $result = Table::create($tableName, $columns);
+        $result = $this->tableModel->create($tableName, $columns);
 
         if (!$result) {
             Response::internalError('Failed to create table.');
         }
 
-        if (!Table::saveTable($userId, $tableName)) {
+        if (!$this->tableModel->saveTable($userId, $tableName)) {
             Response::internalError('Table created, but failed to link to user.');
         }
         
@@ -48,12 +61,12 @@ class TableController
 
         extract($data);
         
-        $userTables = Table::getTablesByUser($userId);
+        $userTables = $this->tableModel->getTablesByUser($userId);
         $accessCheck = Validator::validateUserTableAccess($userId, $tableName, $userTables);
         if ($accessCheck !== true) return $accessCheck;
 
-        $columns = Column::getColumns($tableName);
-        $rows = Row::getRows($tableName, $userId);
+        $columns = $this->columnModel->getColumns($tableName);
+        $rows = $this->rowModel->getRows($tableName, $userId);
 
         $data = [
             'columns' => $columns,
@@ -69,11 +82,11 @@ class TableController
 
         extract($data);
 
-        $userTables = Table::getTablesByUser($userId);
+        $userTables = $this->tableModel->getTablesByUser($userId);
         $accessCheck = Validator::validateUserTableAccess($userId, $tableName, $userTables);
         if ($accessCheck !== true) return $accessCheck;
     
-        $result = Table::delete($tableName);
+        $result = $this->tableModel->delete($tableName);
     
         match ($result['success']) {
             true => Response::success($result['message']),
@@ -91,11 +104,11 @@ class TableController
             Response::error('Invalid new table name. Use only letters, numbers, and underscores.');
         }
 
-        $userTables = Table::getTablesByUser($userId);
+        $userTables = $this->tableModel->getTablesByUser($userId);
         $accessCheck = Validator::validateUserTableAccess($userId, $oldName, $userTables);
         if ($accessCheck !== true) return $accessCheck;
     
-        $result = Table::rename($oldName, $newName);
+        $result = $this->tableModel->rename($oldName, $newName);
     
         match ($result['success']) {
             true => Response::success($result['message'], ['newTableName' => $newName]),
@@ -113,7 +126,7 @@ class TableController
             Response::error('User ID is required.');
         }
 
-        $userTables = Table::getTablesByUser($userId);
+        $userTables = $this->tableModel->getTablesByUser($userId);
 
         match (!empty($userTables)) {
             true => Response::success('User tables fetched successfully.', $userTables),
@@ -122,6 +135,6 @@ class TableController
     }
 
     public function updateTableOrder($request) {
-        return Helper::updateOrder($request, Table::class, 'updateTableOrder', ['userId', 'order']);
+        return Helper::updateOrder($request, $this->tableModel, 'updateTableOrder', ['userId', 'order']);
     }
 }

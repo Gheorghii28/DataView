@@ -16,7 +16,7 @@ class DbConnection {
       );
 
       if (self::$instance->connect_error) {
-        die('Connection failed: ' . self::$instance->connect_error);
+        throw new \Exception('Connection failed: ' . self::$instance->connect_error);
       }
     }
     return self::$instance;

@@ -32,4 +32,22 @@ class Helper {
             false => Response::internalError($result['message']),
         };
     }
+
+    public static function generateColumnsSQL($columns) {
+        $columnsSQL = "`id` INT AUTO_INCREMENT PRIMARY KEY, ";
+        $columnsSQL .= "`created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP, ";
+        $columnsSQL .= "`user_id` INT NOT NULL, ";
+        $columnsSQL .= "`display_order` INT DEFAULT 0, ";
+    
+        if (!empty($columns)) {
+            $columnsSQL .= implode(", ", array_map(
+                fn($col, $type) => "`$col` $type",
+                array_keys($columns), array_values($columns)
+            ));
+        }
+    
+        $columnsSQL = rtrim($columnsSQL, ', ');
+    
+        return $columnsSQL;
+    }
 }

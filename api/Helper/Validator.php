@@ -3,6 +3,7 @@
 namespace Api\Helper;
 
 use Api\Core\Response;
+use Exception;
 
 class Validator {
     public static function validateTableName($name) {
@@ -67,5 +68,31 @@ class Validator {
         }
 
         return Validator::checkTableAccess($tableName, $userTables);
+    }
+
+    public static function validateRowIds($db, $tableName, $rowIds) {
+        $placeholders = implode(',', array_fill(0, count($rowIds), '?'));
+        $sql = "SELECT id FROM `$tableName` WHERE id IN ($placeholders)";
+        $stmt = $db->prepare($sql);
+
+        if (!$stmt) {
+            throw new Exception("Prepare failed: " . $db->error);
+        }
+
+        $types = str_repeat('i', count($rowIds));
+        $stmt->bind_param($types, ...$rowIds);
+        $stmt->execute();
+        $result = $stmt->get_result();
+
+        $existingIds = [];
+        while ($row = $result->fetch_assoc()) {
+            $existingIds[] = $row['id'];
+        }
+
+        $stmt->close();
+
+        if (count($existingIds) !== count($rowIds)) {
+            throw new Exception("Invalid rowId(s) detected.");
+        }
     }
 }

@@ -3,19 +3,24 @@
 namespace Api\Model;
 
 use Api\Model\Table;
-use Api\Core\DbConnection;
+use mysqli;
 
 class Column {
 
-    public function __construct() {}
+    private $db;
+    private $tableModel;
 
-    public static function getColumns($tableName) {
-        $db = DbConnection::getInstance();
+    public function __construct(mysqli $db, Table $tableModel) {
+        $this->db = $db;
+        $this->tableModel = $tableModel;
+    }
+
+    public function getColumns($tableName) {
         $sql = "DESCRIBE `$tableName`";
-        $result = $db->query($sql);
+        $result = $this->db->query($sql);
 
         if (!$result) {
-            die('Query error: ' . $db->error);
+            die('Query error: ' . $this->db->error);
         }
 
         $columns = [];
@@ -29,10 +34,9 @@ class Column {
         return $columns;
     }
 
-    public static function getColumnType($tableName, $columnName) {
-        $db = DbConnection::getInstance();
+    public function getColumnType($tableName, $columnName) {
         $sql = "DESCRIBE `$tableName` `$columnName`";
-        $result = $db->query($sql);
+        $result = $this->db->query($sql);
 
         if ($result && $row = $result->fetch_assoc()) {
             return $row['Type'];
@@ -41,9 +45,8 @@ class Column {
         }
     }
 
-    public static function renameColumn($oldName, $newName, $tableName) {
-        $db = DbConnection::getInstance();
-        if (!Table::exists($tableName)) {
+    public function renameColumn($oldName, $newName, $tableName) {
+        if (!$this->tableModel->exists($tableName)) {
             return ['success' => false, 'message' => "Table '$tableName' does not exist."];
         }
 
@@ -54,57 +57,54 @@ class Column {
     
         $sql = "ALTER TABLE `$tableName` CHANGE COLUMN `$oldName` `$newName` $columnType";
     
-        if ($db->query($sql)) {
+        if ($this->db->query($sql)) {
             return ['success' => true, 'message' => "The column '$oldName' in the '$tableName' table has been successfully renamed to '$newName'."];
         } else {
-            return ['success' => false, 'message' => 'Error renaming column: ' . $db->error];
+            return ['success' => false, 'message' => 'Error renaming column: ' . $this->db->error];
         }
     }    
 
-    public static function addColumn($tableName, $columns) {
-        $db = DbConnection::getInstance();
-        if (!Table::exists($tableName)) {
+    public function addColumn($tableName, $columns) {
+        if (!$this->tableModel->exists($tableName)) {
             return ['success' => false, 'message' => "Table '$tableName' does not exist."];
         }
 
         foreach ($columns as $columnName => $columnType) {
             $sql = "ALTER TABLE `$tableName` ADD `$columnName` $columnType";
             
-            if (!$db->query($sql)) {
-                return ['success' => false, 'message' => 'Error adding column: ' . $db->error];
+            if (!$this->db->query($sql)) {
+                return ['success' => false, 'message' => 'Error adding column: ' . $this->db->error];
             }
         }
 
         return ['success' => true, 'message' => 'Columns successfully added to the table.'];
     }
 
-    public static function deleteColumn($tableName, $columnName) {
-        $db = DbConnection::getInstance();
-        if (!Table::exists($tableName)) {
+    public function deleteColumn($tableName, $columnName) {
+        if (!$this->tableModel->exists($tableName)) {
             return ['success' => false, 'message' => "Table '$tableName' does not exist."];
         }
     
         $sqlCheckColumn = "SHOW COLUMNS FROM `$tableName` LIKE '$columnName'";
-        $result = $db->query($sqlCheckColumn);
+        $result = $this->db->query($sqlCheckColumn);
         if ($result->num_rows === 0) {
             return ['success' => false, 'message' => "Column '$columnName' does not exist in table '$tableName'."];
         }
     
         $sql = "ALTER TABLE `$tableName` DROP COLUMN `$columnName`";
-        if ($db->query($sql)) {
+        if ($this->db->query($sql)) {
             return ['success' => true, 'message' => "Column '$columnName' has been successfully deleted from table '$tableName'."];
         } else {
-            return ['success' => false, 'message' => 'Error deleting column: ' . $db->error];
+            return ['success' => false, 'message' => 'Error deleting column: ' . $this->db->error];
         }
     }
 
-    public static function reorderColumns($tableName, $newOrder) {
-        $db = DbConnection::getInstance();
+    public function reorderColumns($tableName, $newOrder) {
         $columnMetaQuery = "SHOW COLUMNS FROM `$tableName`";
-        $result = $db->query($columnMetaQuery);
+        $result = $this->db->query($columnMetaQuery);
     
         if (!$result) {
-            return ['success' => false, 'message' => "Failed to fetch column metadata: " . $db->error];
+            return ['success' => false, 'message' => "Failed to fetch column metadata: " . $this->db->error];
         }
     
         $columnData = [];
@@ -131,8 +131,8 @@ class Column {
                 ? "ALTER TABLE `$tableName` MODIFY COLUMN `$columnName` {$columnInfo['type']} {$columnInfo['null']} {$columnInfo['default']} {$columnInfo['extra']} AFTER `$afterColumn`"
                 : "ALTER TABLE `$tableName` MODIFY COLUMN `$columnName` {$columnInfo['type']} {$columnInfo['null']} {$columnInfo['default']} {$columnInfo['extra']} FIRST";
     
-            if (!$db->query($query)) {
-                return ['success' => false, 'message' => "Failed to reorder column $columnName: " . $db->error];
+            if (!$this->db->query($query)) {
+                return ['success' => false, 'message' => "Failed to reorder column $columnName: " . $this->db->error];
             }
         }
     

@@ -2,45 +2,40 @@
 
 namespace Api\Model;
 
-use Api\Core\DbConnection;
+use Api\Helper\Helper;
 use Exception;
+use mysqli;
+
 class Table {
 
-    public function __construct() {}
+    private $db;
 
-    public static function create($name, $columns) {
-        $db = DbConnection::getInstance();
+    public function __construct(mysqli $db) {
+        $this->db = $db;
+    }
 
-        if (!$db) {
+    public function create($name, $columns) {
+        if (!$this->db) {
             throw new Exception('Error: No database connection.');
         }
 
-        $columnsSQL = "`id` INT AUTO_INCREMENT PRIMARY KEY, ";
-        $columnsSQL .= "`created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP, ";
-        $columnsSQL .= "`user_id` INT NOT NULL, ";
-        $columnsSQL .= "`display_order` INT DEFAULT 0, ";
-
-        $columnsSQL .= implode(", ", array_map(
-            fn($col, $type) => "`$col` $type",
-            array_keys($columns), array_values($columns)
-        ));
-
+        $columnsSQL = Helper::generateColumnsSQL($columns);
         $sql = "CREATE TABLE `$name` ($columnsSQL, FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE)";
         
-        if (!$db->query($sql)) {
-            throw new Exception('Error creating table: ' . $db->error);
+        if (!$this->db->query($sql)) {
+            throw new Exception('Error creating table: ' . $this->db->error);
         }
 
         return true;
     }
 
-    public static function exists($name) {
-        $db = DbConnection::getInstance();
+    public function exists($name) {
+        $name = $this->db->real_escape_string($name);
         $sql = "SHOW TABLES LIKE '$name'";
-        $result = $db->query($sql);
+        $result = $this->db->query($sql);
     
         if (!$result) {
-            throw new Exception('Query error: ' . $db->error);
+            throw new Exception('Query error: ' . $this->db->error);
         }
     
         $exists = $result->num_rows > 0;
@@ -49,13 +44,12 @@ class Table {
         return $exists;
     }
 
-    public static function saveTable($userId, $tableName) {
-        $db = DbConnection::getInstance();
+    public function saveTable($userId, $tableName) {
         $query = "INSERT INTO user_tables (user_id, table_name) VALUES (?, ?)";
-        $stmt = $db->prepare($query);
+        $stmt = $this->db->prepare($query);
 
         if (!$stmt) {
-            throw new Exception("Prepare failed: " . $db->error);
+            throw new Exception("Prepare failed: " . $this->db->error);
         }
 
         $stmt->bind_param('is', $userId, $tableName);
@@ -69,25 +63,23 @@ class Table {
         return $success;
     }
 
-    public static function delete($tableName) {
-        $db = DbConnection::getInstance();
-
+    public function delete($tableName) {
         if (!self::exists($tableName)) {
             return ['success' => false, 'message' => "Table '$tableName' does not exist."];
         }
     
-        $db->begin_transaction();
+        $this->db->begin_transaction();
     
         try {
             $dropTableQuery = "DROP TABLE `$tableName`";
-            if (!$db->query($dropTableQuery)) {
-                throw new Exception("Failed to drop table: " . $db->error);
+            if (!$this->db->query($dropTableQuery)) {
+                throw new Exception("Failed to drop table: " . $this->db->error);
             }
     
             $deleteLinkQuery = "DELETE FROM user_tables WHERE table_name = ?";
-            $stmt = $db->prepare($deleteLinkQuery);
+            $stmt = $this->db->prepare($deleteLinkQuery);
             if (!$stmt) {
-                throw new Exception("Prepare failed: " . $db->error);
+                throw new Exception("Prepare failed: " . $this->db->error);
             }
     
             $stmt->bind_param('s', $tableName);
@@ -97,22 +89,21 @@ class Table {
     
             $stmt->close();
     
-            $db->commit();
+            $this->db->commit();
     
             return ['success' => true, 'message' => "Table '$tableName' has been successfully deleted."];
         } catch (Exception $e) {
-            $db->rollback();
+            $this->db->rollback();
             return ['success' => false, 'message' => $e->getMessage()];
         }
     }    
 
-    public static function getTablesByUser($userId) {
-        $db = DbConnection::getInstance();
+    public function getTablesByUser($userId) {
         $query = "SELECT id AS table_id, table_name FROM user_tables WHERE user_id = ? ORDER BY table_order ASC";
-        $stmt = $db->prepare($query);
+        $stmt = $this->db->prepare($query);
 
         if (!$stmt) {
-            throw new Exception("Prepare failed: " . $db->error);
+            throw new Exception("Prepare failed: " . $this->db->error);
         }
 
         $stmt->bind_param('i', $userId);
@@ -132,18 +123,16 @@ class Table {
         return $tables;
     }
 
-    public static function rename($oldName, $newName) {
-        $db = DbConnection::getInstance();
-        
+    public function rename($oldName, $newName) {
         if (self::exists($newName)) {
             return ['success' => false, 'message' => "Table '$newName' already exists."];
         }
     
         $sql = "RENAME TABLE `$oldName` TO `$newName`";
     
-        if ($db->query($sql)) {
+        if ($this->db->query($sql)) {
             $updateQuery = "UPDATE user_tables SET table_name = ? WHERE table_name = ?";
-            $stmt = $db->prepare($updateQuery);
+            $stmt = $this->db->prepare($updateQuery);
             if ($stmt) {
                 $stmt->bind_param('ss', $newName, $oldName);
                 $stmt->execute();
@@ -151,21 +140,29 @@ class Table {
             }
             return ['success' => true, 'message' => "The table has been successfully renamed from '$oldName' to '$newName'."];
         } else {
-            return ['success' => false, 'message' => 'Error renaming table: ' . $db->error];
+            return ['success' => false, 'message' => 'Error renaming table: ' . $this->db->error];
         }
     } 
 
-    public static function updateTableOrder($userId, $newOrder) {
-        $db = DbConnection::getInstance();
-        $db->begin_transaction();
+    public function updateTableOrder($userId, $newOrder) {
+        if (!is_array($newOrder) || empty($newOrder)) {
+            return ['success' => false, 'message' => "Error updating table order: Invalid table order data."];
+        }
+
+        $this->db->begin_transaction();
     
         try {
             foreach ($newOrder as $index => $tableId) {
+                if (!is_numeric($tableId)) {
+                    $this->db->rollback();
+                    return ['success' => false, 'message' => "Error updating table order: Invalid table ID at position $index."];
+                }
+                
                 $query = "UPDATE user_tables SET table_order = ? WHERE user_id = ? AND id = ?";
-                $stmt = $db->prepare($query);
+                $stmt = $this->db->prepare($query);
     
                 if (!$stmt) {
-                    throw new Exception("Prepare failed: " . $db->error);
+                    throw new Exception("Prepare failed: " . $this->db->error);
                 }
     
                 $stmt->bind_param('iii', $index, $userId, $tableId);
@@ -176,11 +173,11 @@ class Table {
                 $stmt->close();
             }
     
-            $db->commit();
+            $this->db->commit();
             return ['success' => true, 'message' => 'Table order updated successfully.'];
     
         } catch (Exception $e) {
-            $db->rollback();
+            $this->db->rollback();
             return ['success' => false, 'message' => "Error updating table order: " . $e->getMessage()];
         }
     }

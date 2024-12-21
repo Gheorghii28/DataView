@@ -2,6 +2,7 @@
 
 namespace Api\Controller;
 
+use Api\Core\DbConnection;
 use Api\Helper\Helper;
 use Api\Helper\Validator;
 use Api\Model\Row;
@@ -10,18 +11,28 @@ use Api\Core\Response;
 
 class RowController
 {
+
+    private $db;
+    private $tableModel;
+    private $rowModel;
+
+    public function __construct() {
+        $this->db = DbConnection::getInstance();
+        $this->tableModel = new Table($this->db);
+        $this->rowModel = new Row($this->db);
+    }
     
-    public static function create($request) {
+    public function create($request) {
         $data = Validator::validateAndExtractRequest($request, ['userId', 'tableName', 'data']);
         if (!is_array($data)) return $data;
 
         extract($data);
         
-        $userTables = Table::getTablesByUser($userId);
+        $userTables = $this->tableModel->getTablesByUser($userId);
         $accessCheck = Validator::validateUserTableAccess($userId, $tableName, $userTables);
         if ($accessCheck !== true) return $accessCheck;
 
-        $result = Row::insertRow($tableName, $data);
+        $result = $this->rowModel->insertRow($tableName, $data);
 
         match ($result['success']) {
             true => Response::success($result['message'], ['rowId' => $result['id']]),
@@ -29,17 +40,17 @@ class RowController
         };
     }
 
-    public static function update($request) {
+    public function update($request) {
         $data = Validator::validateAndExtractRequest($request, ['userId', 'tableName', 'data', 'rowId']);
         if (!is_array($data)) return $data;
 
         extract($data);
         
-        $userTables = Table::getTablesByUser($userId);
+        $userTables = $this->tableModel->getTablesByUser($userId);
         $accessCheck = Validator::validateUserTableAccess($userId, $tableName, $userTables);
         if ($accessCheck !== true) return $accessCheck;
 
-        $result = Row::updateRow($tableName, $rowId, $data);
+        $result = $this->rowModel->updateRow($tableName, $rowId, $data);
 
         match ($result['success']) {
             true => Response::success($result['message']),
@@ -47,13 +58,13 @@ class RowController
         };
     }
 
-    public static function delete($request) {
+    public function delete($request) {
         $data = Validator::validateAndExtractRequest($request, ['userId', 'tableName', 'rowId']);
         if (!is_array($data)) return $data;
 
         extract($data);
     
-        $result = Row::deleteRow($tableName, $rowId, $userId);
+        $result = $this->rowModel->deleteRow($tableName, $rowId, $userId);
     
         match ($result['success']) {
             true => Response::success($result['message']),
@@ -61,7 +72,7 @@ class RowController
         };
     }
 
-    public static function updateRowOrder($request) {
-        return Helper::updateOrder($request, Row::class, 'reorderRows', ['userId', 'tableName', 'order']);
+    public function updateRowOrder($request) {
+        return Helper::updateOrder($request, $this->rowModel, 'reorderRows', ['userId', 'tableName', 'order']);
     }
 }

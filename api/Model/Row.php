@@ -2,17 +2,22 @@
 
 namespace Api\Model;
 
-use Api\Core\DbConnection;
+use Api\Helper\Validator;
 use Exception;
+use mysqli;
+use mysqli_sql_exception;
 
 class Row {
 
-    public function __construct() {}
+    private $db;
 
-    public static function getRows($tableName, $userId) {
-        $db = DbConnection::getInstance();
-        $sql = "SELECT * FROM `$tableName` WHERE user_id = ?";
-        $stmt = $db->prepare($sql);
+    public function __construct(mysqli $db) {
+        $this->db = $db;
+    }
+
+    public function getRows($tableName, $userId) {
+        $sql = "SELECT * FROM `$tableName` WHERE user_id = ? ORDER BY display_order ASC";
+        $stmt = $this->db->prepare($sql);
         $stmt->bind_param("i", $userId);
         $stmt->execute();
         $result = $stmt->get_result();
@@ -25,91 +30,95 @@ class Row {
         return $rows;
     }
 
-    public static function insertRow($tableName, $data) {
-        $db = DbConnection::getInstance();
+    public function insertRow($tableName, $data) {
         $columns = array_keys($data);
         $values = array_values($data);
 
         $columnsList = implode(", ", array_map(fn($col) => "`$col`", $columns));
         $placeholders = implode(", ", array_fill(0, count($values), '?'));
 
-        $sql = "INSERT INTO `$tableName` ($columnsList) VALUES ($placeholders)";
-        $stmt = $db->prepare($sql);
-
-        if (!$stmt) {
-            return ['success' => false, 'message' => $db->error];
-        }
-
-        $types = '';
-        $bindValues = [];
-        foreach ($values as $value) {
-            if (is_int($value)) {
-                $types .= 'i';
-            } elseif (is_float($value)) {
-                $types .= 'd';
-            } else {
-                $types .= 's';
+        try {
+            $sql = "INSERT INTO `$tableName` ($columnsList) VALUES ($placeholders)";
+            $stmt = $this->db->prepare($sql);
+    
+            if (!$stmt) {
+                return ['success' => false, 'message' => "MySQL Error (prepare): " . $this->db->error];
             }
-            $bindValues[] = $value;
-        }
-
-        $stmt->bind_param($types, ...$bindValues);
-
-        if ($stmt->execute()) {
-            return ['success' => true, 'message' => 'Row successfully added.', 'id' => $stmt->insert_id];
-        } else {
-            return ['success' => false, 'message' => $stmt->error];
+    
+            $types = '';
+            $bindValues = [];
+            foreach ($values as $value) {
+                if (is_int($value)) {
+                    $types .= 'i';
+                } elseif (is_float($value)) {
+                    $types .= 'd';
+                } else {
+                    $types .= 's';
+                }
+                $bindValues[] = $value;
+            }
+    
+            $stmt->bind_param($types, ...$bindValues);
+    
+            if ($stmt->execute()) {
+                return ['success' => true, 'message' => 'Row successfully added.', 'id' => $stmt->insert_id];
+            } else {
+                return ['success' => false, 'message' => "MySQL Error (execute): " . $stmt->error];
+            }
+        } catch (mysqli_sql_exception $e) {
+            return ['success' => false, 'message' => "MySQL Exception: " . $e->getMessage()];
         }
     }
 
-    public static function updateRow($tableName, $rowId, $data) {
-        $db = DbConnection::getInstance();
+    public function updateRow($tableName, $rowId, $data) {
         $columns = array_keys($data);
         $values = array_values($data);
-    
         $setClause = implode(", ", array_map(fn($col) => "`$col` = ?", $columns));
-        $sql = "UPDATE `$tableName` SET $setClause WHERE `id` = ?";
 
-        $stmt = $db->prepare($sql);
-    
-        if (!$stmt) {
-            return ['success' => false, 'message' => $db->error];
-        }
-    
-        $types = '';
-        $bindValues = [];
-        foreach ($values as $value) {
-            if (is_int($value)) {
-                $types .= 'i';
-            } elseif (is_float($value)) {
-                $types .= 'd';
-            } else {
-                $types .= 's';
+        try {
+            $sql = "UPDATE `$tableName` SET $setClause WHERE `id` = ?";
+            $stmt = $this->db->prepare($sql);
+        
+            if (!$stmt) {
+                return ['success' => false, 'message' => $this->db->error];
             }
-            $bindValues[] = $value;
-        }
+        
+            $types = '';
+            $bindValues = [];
+            foreach ($values as $value) {
+                if (is_int($value)) {
+                    $types .= 'i';
+                } elseif (is_float($value)) {
+                    $types .= 'd';
+                } else {
+                    $types .= 's';
+                }
+                $bindValues[] = $value;
+            }
+        
+            $types .= 'i';
+            $bindValues[] = $rowId;
     
-        $types .= 'i';
-        $bindValues[] = $rowId;
-
-        $stmt->bind_param($types, ...$bindValues);
-    
-        if ($stmt->execute()) {
-            return ['success' => true, 'message' => 'Row successfully updated.'];
-        } else {
-            return ['success' => false, 'message' => $stmt->error];
+            $stmt->bind_param($types, ...$bindValues);
+        
+            if ($stmt->execute()) {
+                return ['success' => true, 'message' => 'Row successfully updated.'];
+            } else {
+                return ['success' => false, 'message' => $stmt->error];
+            }
+        } catch (mysqli_sql_exception $e) {
+            return ['success' => false, 'message' => "MySQL Exception: " . $e->getMessage()];
         }
     }
 
-    public static function deleteRow($tableName, $rowId, $userId) {
-        $db = DbConnection::getInstance();
-        $tableName = $db->real_escape_string($tableName);
+    public function deleteRow($tableName, $rowId, $userId) {
+        $tableName = $this->db->real_escape_string($tableName);
     
         $sql = "DELETE FROM `$tableName` WHERE `id` = ? AND `user_id` = ?";
-        $stmt = $db->prepare($sql);
+        $stmt = $this->db->prepare($sql);
     
         if (!$stmt) {
-            return ['success' => false, 'message' => $db->error];
+            return ['success' => false, 'message' => $this->db->error];
         }
     
         $stmt->bind_param('ii', $rowId, $userId);
@@ -125,17 +134,18 @@ class Row {
         }
     }
 
-    public static function reorderRows($tableName, $newOrder) {
-        $db = DbConnection::getInstance();
-        $db->begin_transaction();
+    public function reorderRows($tableName, $newOrder) {
+        $this->db->begin_transaction();
     
         try {
+            Validator::validateRowIds($this->db, $tableName, $newOrder);
+
             foreach ($newOrder as $index => $rowId) {
                 $query = "UPDATE `$tableName` SET display_order = ? WHERE id = ?";
-                $stmt = $db->prepare($query);
+                $stmt = $this->db->prepare($query);
     
                 if (!$stmt) {
-                    throw new Exception("Prepare failed: " . $db->error);
+                    throw new Exception("Prepare failed: " . $this->db->error);
                 }
     
                 $stmt->bind_param('ii', $index, $rowId);
@@ -146,11 +156,11 @@ class Row {
                 $stmt->close();
             }
     
-            $db->commit();
+            $this->db->commit();
             return ['success' => true, 'message' => 'Row order updated successfully.'];
     
         } catch (Exception $e) {
-            $db->rollback();
+            $this->db->rollback();
             return ['success' => false, 'message' => "Error updating row order: " . $e->getMessage()];
         }
     }  
