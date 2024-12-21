@@ -22,7 +22,7 @@
 
 ### Requirements
 
-- PHP >= 7.4
+- PHP >= 8
 - MySQL database
 - Web server (e.g., Apache or Nginx)
 
