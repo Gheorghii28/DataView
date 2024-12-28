@@ -95,8 +95,8 @@ export function renameTable(baseApiUrl, renameData) {
             updateElementTextAndValue('tableNameDisplay', 'newTableName', 'oldTableName', 'Table: ');
             updateDeleteConfirmation(
                 '#deleteTableForm',
-                `Are you sure you want to delete the table "${response.data.newTableName}"?`,
-                response.data.newTableName,
+                `Are you sure you want to delete the table "${response.data.newName}"?`,
+                response.data.newName,
                 'table-name'
             );
         }

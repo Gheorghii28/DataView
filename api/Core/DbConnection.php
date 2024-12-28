@@ -5,15 +5,16 @@ class DbConnection {
 
   private static $instance = NULL;
 
-  public static function getInstance() {
+  public function getInstance() {
     if (!isset(self::$instance)) {
-      $config = require __DIR__ . '/../../config/config.php';
-      self::$instance = new \mysqli(
-        $config['db']['hostname'], 
-        $config['db']['username'], 
-        $config['db']['password'], 
-        $config['db']['database']
-      );
+      require __DIR__ . '/../../config/config.php';
+
+      $hostname = $_ENV['DB_SERVER'];
+      $username = $_ENV['DB_USERNAME'];
+      $password = $_ENV['DB_PASSWORD'];
+      $database = $_ENV['DB_NAME'];
+      
+      self::$instance = new \mysqli($hostname, $username, $password, $database);
 
       if (self::$instance->connect_error) {
         throw new \Exception('Connection failed: ' . self::$instance->connect_error);

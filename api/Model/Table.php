@@ -9,9 +9,11 @@ use mysqli;
 class Table {
 
     private $db;
+    private $helper;
 
     public function __construct(mysqli $db) {
         $this->db = $db;
+        $this->helper = new Helper();
     }
 
     public function create($name, $columns) {
@@ -19,7 +21,7 @@ class Table {
             throw new Exception('Error: No database connection.');
         }
 
-        $columnsSQL = Helper::generateColumnsSQL($columns);
+        $columnsSQL = $this->helper->generateColumnsSQL($columns);
         $sql = "CREATE TABLE `$name` ($columnsSQL, FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE)";
         
         if (!$this->db->query($sql)) {
@@ -103,7 +105,7 @@ class Table {
         $stmt = $this->db->prepare($query);
 
         if (!$stmt) {
-            throw new Exception("Prepare failed: " . $this->db->error);
+            return ['success' => false, 'message' => "Prepare failed: " . $this->db->error];
         }
 
         $stmt->bind_param('i', $userId);
@@ -120,7 +122,7 @@ class Table {
 
         $stmt->close();
 
-        return $tables;
+        return ['success' => true, 'message' => 'User tables fetched successfully.', 'tables' => $tables];
     }
 
     public function rename($oldName, $newName) {

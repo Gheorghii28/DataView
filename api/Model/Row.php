@@ -10,9 +10,11 @@ use mysqli_sql_exception;
 class Row {
 
     private $db;
+    private $validator;
 
     public function __construct(mysqli $db) {
         $this->db = $db;
+        $this->validator = new Validator();
     }
 
     public function getRows($tableName, $userId) {
@@ -138,19 +140,23 @@ class Row {
         $this->db->begin_transaction();
     
         try {
-            Validator::validateRowIds($this->db, $tableName, $newOrder);
+            $resultValidateRowIds = $this->validator->validateRowIds($this->db, $tableName, $newOrder);
+
+            if (!$resultValidateRowIds['success']) {
+                return ['success' => false, 'message' => "Error validating row IDs: " . $resultValidateRowIds['message']];
+            }
 
             foreach ($newOrder as $index => $rowId) {
                 $query = "UPDATE `$tableName` SET display_order = ? WHERE id = ?";
                 $stmt = $this->db->prepare($query);
     
                 if (!$stmt) {
-                    throw new Exception("Prepare failed: " . $this->db->error);
+                    return ['success' => false, 'message' => "Prepare failed: " . $this->db->error];
                 }
     
                 $stmt->bind_param('ii', $index, $rowId);
                 if (!$stmt->execute()) {
-                    throw new Exception("Execute failed: " . $stmt->error);
+                    return ['success' => false, 'message' => "Execute failed: " . $stmt->error];
                 }
     
                 $stmt->close();

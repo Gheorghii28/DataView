@@ -6,15 +6,17 @@ require __DIR__ . '/../../vendor/autoload.php';
 
 use Api\Core\Response;
 
+$response = new Response();
+
 // Global Error & Exception Handling
-set_exception_handler(function ($e) {
+set_exception_handler(function ($e) use ($response) {
     error_log($e->getMessage());
-    Response::internalError('Unexpected server error:'. $e->getMessage());
+    $response->internalError('Unexpected server error:'. $e->getMessage());
 });
 
-set_error_handler(function ($errno, $errstr, $errfile, $errline) {
+set_error_handler(function ($errno, $errstr, $errfile, $errline) use ($response) {
     error_log("$errstr in $errfile on line $errline");
-    Response::internalError("Unexpected server error: $errstr in $errfile on line $errline");
+    $response->internalError("Unexpected server error: $errstr in $errfile on line $errline");
 });
 
 require __DIR__ . '/../config/middleware.php';

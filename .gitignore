@@ -1,5 +1,6 @@
 # Ignore .env file
 .env
+.env.testing
 
 # Ignore IDE and editor files
 .vscode/

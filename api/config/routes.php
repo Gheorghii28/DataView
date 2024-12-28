@@ -7,6 +7,7 @@ use Api\Controller\ColumnController;
 use Api\Controller\RowController;
 
 $router = new Router();
+$response = new Response();
 
 $router->get('/api/table', TableController::class . '::get');
 $router->post('/api/table', TableController::class . '::create');
@@ -27,7 +28,7 @@ $router->put('/api/rows', RowController::class . '::update');
 $router->delete('/api/rows', RowController::class . '::delete');
 
 $router->addNotFoundHandler(function () {
-    Response::notFound();
+    $this->response->notFound();
 });
 
 return $router;

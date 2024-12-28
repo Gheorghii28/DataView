@@ -8,71 +8,118 @@ use Api\Helper\Validator;
 use Api\Model\Row;
 use Api\Model\Table;
 use Api\Core\Response;
+use Api\Model\Column;
 
 class RowController
 {
 
+    private $dbConnection;
     private $db;
     private $tableModel;
+    private $columnModel;
     private $rowModel;
+    private $validator;
+    private $helper;
+    private $response;
 
-    public function __construct() {
-        $this->db = DbConnection::getInstance();
+    public function __construct(DbConnection $dbConnection = NULL, Response $response = NULL) {
+        $this->dbConnection = $dbConnection ?? new DbConnection();
+        $this->db = $this->dbConnection->getInstance();
         $this->tableModel = new Table($this->db);
+        $this->columnModel = new Column($this->db, $this->tableModel);
         $this->rowModel = new Row($this->db);
+        $this->validator = new Validator();
+        $this->helper = new Helper();
+        $this->response = $response ?? new Response();
     }
     
     public function create($request) {
-        $data = Validator::validateAndExtractRequest($request, ['userId', 'tableName', 'data']);
-        if (!is_array($data)) return $data;
+        $validationRequest = $this->validator->validateAndExtractRequest($request, ['userId', 'tableName', 'data']);
 
-        extract($data);
+        if (!$validationRequest['success']) {
+            return $this->response->error('Invalid request format or missing fields.');
+        }
+
+        extract($validationRequest['data']);
+
+        $resultHasAccess = $this->validator->hasAccessToTable($userId, $tableName, $this->tableModel);
+
+        if (!$resultHasAccess['success']) {
+            return $this->response->forbidden($resultHasAccess['message']);
+        }
         
-        $userTables = $this->tableModel->getTablesByUser($userId);
-        $accessCheck = Validator::validateUserTableAccess($userId, $tableName, $userTables);
-        if ($accessCheck !== true) return $accessCheck;
+        $dataTypeValidationResult = $this->validator->validateDataTypes($data, $tableName, $this->columnModel);
+
+        if(!$dataTypeValidationResult['success']) {
+            return $this->response->error($dataTypeValidationResult['message']);
+        }
 
         $result = $this->rowModel->insertRow($tableName, $data);
 
-        match ($result['success']) {
-            true => Response::success($result['message'], ['rowId' => $result['id']]),
-            false => Response::internalError($result['message'], ['rowId' => $result['id']]),
+        return match ($result['success']) {
+            true => $this->response->success($result['message'], ['rowId' => $result['id']]),
+            false => $this->response->internalError($result['message'], ['rowId' => $result['id']]),
         };
     }
 
     public function update($request) {
-        $data = Validator::validateAndExtractRequest($request, ['userId', 'tableName', 'data', 'rowId']);
-        if (!is_array($data)) return $data;
+        $validationRequest = $this->validator->validateAndExtractRequest($request, ['userId', 'tableName', 'data', 'rowId']);
 
-        extract($data);
-        
-        $userTables = $this->tableModel->getTablesByUser($userId);
-        $accessCheck = Validator::validateUserTableAccess($userId, $tableName, $userTables);
-        if ($accessCheck !== true) return $accessCheck;
+        if (!$validationRequest['success']) {
+            return $this->response->error('Invalid request format or missing fields.');
+        }
+
+        extract($validationRequest['data']);
+
+        $resultHasAccess = $this->validator->hasAccessToTable($userId, $tableName, $this->tableModel);
+
+        if (!$resultHasAccess['success']) {
+            return $this->response->forbidden($resultHasAccess['message']);
+        }
+
+        $dataTypeValidationResult = $this->validator->validateDataTypes($data, $tableName, $this->columnModel);
+
+        if(!$dataTypeValidationResult['success']) {
+            return $this->response->error($dataTypeValidationResult['message']);
+        }
 
         $result = $this->rowModel->updateRow($tableName, $rowId, $data);
 
-        match ($result['success']) {
-            true => Response::success($result['message']),
-            false => Response::internalError($result['message']),
+        return match ($result['success']) {
+            true => $this->response->success($result['message']),
+            false => $this->response->internalError($result['message']),
         };
     }
 
     public function delete($request) {
-        $data = Validator::validateAndExtractRequest($request, ['userId', 'tableName', 'rowId']);
-        if (!is_array($data)) return $data;
+        $validationRequest = $this->validator->validateAndExtractRequest($request, ['userId', 'tableName', 'rowId']);
 
-        extract($data);
+        if (!$validationRequest['success']) {
+            return $this->response->error('Invalid request format or missing fields.');
+        }
+
+        extract($validationRequest['data']);
+
+        $resultHasAccess = $this->validator->hasAccessToTable($userId, $tableName, $this->tableModel);
+
+        if (!$resultHasAccess['success']) {
+            return $this->response->forbidden($resultHasAccess['message']);
+        }
     
         $result = $this->rowModel->deleteRow($tableName, $rowId, $userId);
     
-        match ($result['success']) {
-            true => Response::success($result['message']),
-            false => Response::internalError($result['message']),
+        return match ($result['success']) {
+            true => $this->response->success($result['message']),
+            false => $this->response->internalError($result['message']),
         };
     }
 
     public function updateRowOrder($request) {
-        return Helper::updateOrder($request, $this->rowModel, 'reorderRows', ['userId', 'tableName', 'order']);
+        $result = $this->helper->updateOrder($request, $this->rowModel, 'reorderRows', ['userId', 'tableName', 'order']);
+
+        return match ($result['success']) {
+            true => $this->response->success($result['message']),
+            false => $this->response->internalError($result['message']),
+        };
     }
 }

@@ -149,7 +149,7 @@ class RowTest extends TestCase
 
         // Check that the operation fails
         $this->assertFalse($result['success']);
-        $this->assertStringContainsString('Error updating row order', $result['message']);
+        $this->assertStringContainsString('Error validating row IDs', $result['message']);
     }
 }
 

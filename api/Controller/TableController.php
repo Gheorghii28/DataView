@@ -12,58 +12,74 @@ use Api\Model\Row;
 
 class TableController
 {
+    private $dbConnection;
     private $db;
     private $tableModel;
     private $columnModel;
     private $rowModel;
+    private $validator;
+    private $helper;
+    private $response;
 
-    public function __construct() {
-        $this->db = DbConnection::getInstance();
+    public function __construct(DbConnection $dbConnection = NULL, Response $response = NULL) {
+        $this->dbConnection = $dbConnection ?? new DbConnection();
+        $this->db = $this->dbConnection->getInstance();
         $this->tableModel = new Table($this->db);
         $this->columnModel = new Column($this->db, $this->tableModel);
         $this->rowModel = new Row($this->db);
+        $this->validator = new Validator();
+        $this->helper = new Helper();
+        $this->response = $response ?? new Response();
     }
 
     public function create($request) {
-        $data = Validator::validateAndExtractRequest($request, ['userId', 'tableName', 'columns']);
-        if (!is_array($data)) return $data;
+        $validationRequest = $this->validator->validateAndExtractRequest($request, ['userId', 'tableName', 'columns']);
 
-        extract($data);
-
-        if (!Validator::validateTableName($tableName)) {
-            Response::error('Invalid table name. Use only letters, numbers, and underscores.');
+        if (!$validationRequest['success']) {
+            return $this->response->error('Invalid request format or missing fields.');
         }
 
-        if (!Validator::validateColumns($columns)) {
-            Response::error('Invalid columns. Ensure valid names and SQL types.');
+        extract($validationRequest['data']);
+
+        if (!$this->validator->validateTableName($tableName)) {
+            return $this->response->error('Invalid table name. Use only letters, numbers, and underscores.');
+        }
+
+        if (!$this->validator->validateColumns($columns)) {
+            return $this->response->error('Invalid columns. Ensure valid names and SQL types.');
         }
 
         if ($this->tableModel->exists($tableName)) {
-            Response::conflict("Table '$tableName' already exists.");
+            return $this->response->conflict("Table '$tableName' already exists.");
         }
 
         $result = $this->tableModel->create($tableName, $columns);
 
         if (!$result) {
-            Response::internalError('Failed to create table.');
+            return $this->response->internalError('Failed to create table.');
         }
 
         if (!$this->tableModel->saveTable($userId, $tableName)) {
-            Response::internalError('Table created, but failed to link to user.');
+            return $this->response->internalError('Table created, but failed to link to user.');
         }
         
-        Response::success("Table '$tableName' created and linked to user successfully.");
+        return $this->response->success("Table '$tableName' created and linked to user successfully.");
     }
 
     public function get($request) {
-        $data = Validator::validateAndExtractRequest($request, ['userId', 'tableName']);
-        if (!is_array($data)) return $data;
+        $validationRequest = $this->validator->validateAndExtractRequest($request, ['userId', 'tableName']);
 
-        extract($data);
+        if (!$validationRequest['success']) {
+            return $this->response->error('Invalid request format or missing fields.');
+        }
+
+        extract($validationRequest['data']);
         
-        $userTables = $this->tableModel->getTablesByUser($userId);
-        $accessCheck = Validator::validateUserTableAccess($userId, $tableName, $userTables);
-        if ($accessCheck !== true) return $accessCheck;
+        $resultHasAccess = $this->validator->hasAccessToTable($userId, $tableName, $this->tableModel);
+
+        if (!$resultHasAccess['success']) {
+            return $this->response->forbidden($resultHasAccess['message']);
+        }
 
         $columns = $this->columnModel->getColumns($tableName);
         $rows = $this->rowModel->getRows($tableName, $userId);
@@ -73,68 +89,86 @@ class TableController
             'rows' => $rows
         ];
 
-        Response::success('Table data fetched successfully.', $data);
+        return $this->response->success('Table data fetched successfully.', $data);
     }
 
     public function delete($request) {
-        $data = Validator::validateAndExtractRequest($request, ['userId', 'tableName']);
-        if (!is_array($data)) return $data;
+        $validationRequest = $this->validator->validateAndExtractRequest($request, ['userId', 'tableName']);
 
-        extract($data);
+        if (!$validationRequest['success']) {
+            return $this->response->error('Invalid request format or missing fields.');
+        }
 
-        $userTables = $this->tableModel->getTablesByUser($userId);
-        $accessCheck = Validator::validateUserTableAccess($userId, $tableName, $userTables);
-        if ($accessCheck !== true) return $accessCheck;
+        extract($validationRequest['data']);
+
+        $resultHasAccess = $this->validator->hasAccessToTable($userId, $tableName, $this->tableModel);
+
+        if (!$resultHasAccess['success']) {
+            return $this->response->forbidden($resultHasAccess['message']);
+        }
     
         $result = $this->tableModel->delete($tableName);
     
-        match ($result['success']) {
-            true => Response::success($result['message']),
-            false => Response::internalError($result['message']),
+        return match ($result['success']) {
+            true => $this->response->success($result['message']),
+            false => $this->response->internalError($result['message']),
         };
     }
 
     public function rename($request) {
-        $data = Validator::validateAndExtractRequest($request, ['userId', 'oldName', 'newName']);
-        if (!is_array($data)) return $data;
+        $validationRequest = $this->validator->validateAndExtractRequest($request, ['userId', 'oldName', 'newName']);
 
-        extract($data);
-    
-        if (!Validator::validateTableName($newName)) {
-            Response::error('Invalid new table name. Use only letters, numbers, and underscores.');
+        if (!$validationRequest['success']) {
+            return $this->response->error('Invalid request format or missing fields.');
         }
 
-        $userTables = $this->tableModel->getTablesByUser($userId);
-        $accessCheck = Validator::validateUserTableAccess($userId, $oldName, $userTables);
-        if ($accessCheck !== true) return $accessCheck;
+        extract($validationRequest['data']);
+    
+        if (!$this->validator->validateTableName($newName)) {
+            return $this->response->error('Invalid new table name. Use only letters, numbers, and underscores.');
+        }
+
+        $resultHasAccess = $this->validator->hasAccessToTable($userId, $oldName, $this->tableModel);
+
+        if (!$resultHasAccess['success']) {
+            return $this->response->forbidden($resultHasAccess['message']);
+        }
     
         $result = $this->tableModel->rename($oldName, $newName);
     
-        match ($result['success']) {
-            true => Response::success($result['message'], ['newTableName' => $newName]),
-            false => Response::internalError($result['message']),
+        return match ($result['success']) {
+            true => $this->response->success($result['message'], ['newName' => $newName]),
+            false => $this->response->internalError($result['message']),
         };
     } 
 
     public function getUserTables($request) {
-        $data = Validator::validateAndExtractRequest($request, ['userId']);
-        if (!is_array($data)) return $data;
+        $validationRequest = $this->validator->validateAndExtractRequest($request, ['userId']);
 
-        extract($data);
-
-        if (!$userId) {
-            Response::error('User ID is required.');
+        if (!$validationRequest['success']) {
+            return $this->response->error('Invalid request format or missing fields.');
         }
 
-        $userTables = $this->tableModel->getTablesByUser($userId);
+        extract($validationRequest['data']);
 
-        match (!empty($userTables)) {
-            true => Response::success('User tables fetched successfully.', $userTables),
-            false => Response::internalError('No tables found for this user.'),
+        if (!$userId) {
+            return $this->response->error('User ID is required.');
+        }
+
+        $result = $this->tableModel->getTablesByUser($userId);
+
+        return match ($result['success']) {
+            true => $this->response->success($result['message'], $result['tables']),
+            false => $this->response->internalError('No tables found for this user.'),
         };
     }
 
     public function updateTableOrder($request) {
-        return Helper::updateOrder($request, $this->tableModel, 'updateTableOrder', ['userId', 'order']);
+        $result = $this->helper->updateOrder($request, $this->tableModel, 'updateTableOrder', ['userId', 'order']);
+
+        return match ($result['success']) {
+            true => $this->response->success($result['message']),
+            false => $this->response->internalError($result['message']),
+        };
     }
 }

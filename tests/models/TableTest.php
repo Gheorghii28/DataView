@@ -87,11 +87,11 @@ class TableTest extends TestCase
         $this->tableModel->saveTable($userId, 'table1');
         $this->tableModel->saveTable($userId, 'table2');
 
-        $tables = $this->tableModel->getTablesByUser($userId);
+        $resultTables = $this->tableModel->getTablesByUser($userId);
         
-        $this->assertCount(2, $tables);
-        $this->assertEquals('table1', $tables[0]['name']);
-        $this->assertEquals('table2', $tables[1]['name']);
+        $this->assertCount(3, $resultTables);
+        $this->assertEquals('table1', $resultTables['tables'][0]['name']);
+        $this->assertEquals('table2', $resultTables['tables'][1]['name']);
     }
 
     public function testRenameTableSuccessfully()
@@ -122,11 +122,13 @@ class TableTest extends TestCase
         $this->tableModel->saveTable($userId, 'table2');
         $this->tableModel->saveTable($userId, 'table3');
 
-        $tables = $this->tableModel->getTablesByUser($userId);
+        $resultTables = $this->tableModel->getTablesByUser($userId);
+        $tables = $resultTables['tables'];
         $newOrder = array_column($tables, 'id');
         sort($newOrder);
 
         $result = $this->tableModel->updateTableOrder($userId, array_reverse($newOrder));
+        $this->assertEquals('Table order updated successfully.', $result['message']);
         $this->assertTrue($result['success']);
     }
 

@@ -7,23 +7,31 @@ class Response
     private int $statusCode;
     private string $message;
     private array $data;
+    private bool $shouldReturn;
 
-    public function __construct(int $statusCode, string $message, array $data = [])
+    public function __construct(int $statusCode = 400, string $message = 'Resource not found', array $data = [], bool $shouldReturn = false)
     {
         $this->setStatusCode($statusCode);
         $this->message = $message;
         $this->data = $data;
+        $this->shouldReturn = $shouldReturn;
     }
 
-    public function send(): void
+    private function send(): array|string
     {
-        http_response_code($this->statusCode);
-        header('Content-Type: application/json');
-        echo json_encode([
+        $response = [
             'status' => $this->statusCode,
             'message' => $this->message,
-            'data' => $this->data
-        ]);
+            'data' => $this->data,
+        ];
+
+        if ($this->shouldReturn) {
+            return $response;
+        }
+
+        http_response_code($this->statusCode);
+        header('Content-Type: application/json');
+        echo json_encode($response);
         exit;
     }
 
@@ -35,45 +43,52 @@ class Response
         $this->statusCode = $statusCode;
     }
 
-    public static function success(string $message = 'Success', array $data = [], int $statusCode = 200): void
+    public function success(string $message = 'Success', array $data = [], int $statusCode = 200): array|string
     {
-        $response = new self($statusCode, $message, $data);
-        $response->send();
+        $shouldReturn = $this->shouldReturn;
+        $response = new self($statusCode, $message, $data, $shouldReturn);
+        return $response->send();
     }
 
-    public static function error(string $message = 'An error occurred', array $data = [], int $statusCode = 400,): void
+    public function error(string $message = 'An error occurred', array $data = [], int $statusCode = 400): array|string
     {
-        $response = new self($statusCode, $message, $data);
-        $response->send();
+        $shouldReturn = $this->shouldReturn;
+        $response = new self($statusCode, $message, $data, $shouldReturn);
+        return $response->send();
     }
 
-    public static function notFound(string $message = 'Resource not found', array $data = []): void
+    public function notFound(string $message = 'Resource not found', array $data = [], int $statusCode = 404): array|string
     {
-        $response = new self(404, $message, $data);
-        $response->send();
+        $shouldReturn = $this->shouldReturn;
+        $response = new self($statusCode, $message, $data, $shouldReturn);
+        return $response->send();
     }
 
-    public static function unauthorized(string $message = 'Unauthorized access', array $data = []): void
+    public function unauthorized(string $message = 'Unauthorized access', array $data = [], int $statusCode = 401): array|string
     {
-        $response = new self(401, $message, $data);
-        $response->send();
+        $shouldReturn = $this->shouldReturn;
+        $response = new self($statusCode, $message, $data, $shouldReturn);
+        return $response->send();
     }
 
-    public static function forbidden(string $message = 'Access forbidden', array $data = []): void
+    public function forbidden(string $message = 'Access forbidden', array $data = [], int $statusCode = 403): array|string
     {
-        $response = new self(403, $message, $data);
-        $response->send();
+        $shouldReturn = $this->shouldReturn;
+        $response = new self($statusCode, $message, $data, $shouldReturn);
+        return $response->send();
     }
 
-    public static function internalError(string $message = 'Internal server error', array $data = []): void
+    public function internalError(string $message = 'Internal server error', array $data = [], int $statusCode = 500): array|string
     {
-        $response = new self(500, $message, $data);
-        $response->send();
+        $shouldReturn = $this->shouldReturn;
+        $response = new self($statusCode, $message, $data, $shouldReturn);
+        return $response->send();
     }
 
-    public static function conflict(string $message = 'Resource conflict', array $data = []): void
+    public function conflict(string $message = 'Resource conflict', array $data = [], int $statusCode = 409): array|string
     {
-        $response = new self(409, $message, $data);
-        $response->send();
+        $shouldReturn = $this->shouldReturn;
+        $response = new self($statusCode, $message, $data, $shouldReturn);
+        return $response->send();
     }
 }

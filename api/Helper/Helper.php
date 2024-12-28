@@ -7,33 +7,44 @@ use Api\Helper\Validator;
 
 class Helper {
 
-    public static function updateOrder($request, $model, $method, $requiredFields) {
-        $data = Validator::validateAndExtractRequest($request, $requiredFields);
-        if (!is_array($data)) return $data;
+    private $validator;
+    private $response;
 
-        extract($data);
+    public function __construct() {
+        $this->validator = new Validator();
+        $this->response = new Response();
+    }
+
+    public function updateOrder($request, $model, $method, $requiredFields): array|string {
+        $validationRequest = $this->validator->validateAndExtractRequest($request, $requiredFields);
+        
+        if (!$validationRequest['success']) {
+            return $this->response->error('Invalid request format or missing fields.');
+        }
+
+        extract($validationRequest['data']);
 
         if (!is_array($order)) {
-            Response::error('Invalid order format.');
+            return $this->response->error('Invalid order format.');
         }
 
         if (!method_exists($model, $method)) {
-            Response::error("The method $method does not exist in the model $model.");
+            return $this->response->error("The method $method does not exist in the model $model.");
         }
         
         $result = call_user_func([$model, $method], $tableName ?? $userId, $order);
         
         if (!is_array($result) || !isset($result['success']) || !isset($result['message'])) {
-            Response::internalError('Invalid response format from model method.');
+            return $this->response->internalError('Invalid response format from model method.');
         }
         
-        match ($result['success']) {
-            true => Response::success($result['message']),
-            false => Response::internalError($result['message']),
+        return match ($result['success']) {
+            true => ['success' => true, 'message' => $result['message']],
+            false => ['success' => false, 'message' => $result['message']],
         };
     }
 
-    public static function generateColumnsSQL($columns) {
+    public function generateColumnsSQL($columns): string {
         $columnsSQL = "`id` INT AUTO_INCREMENT PRIMARY KEY, ";
         $columnsSQL .= "`created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP, ";
         $columnsSQL .= "`user_id` INT NOT NULL, ";
@@ -49,5 +60,16 @@ class Helper {
         $columnsSQL = rtrim($columnsSQL, ', ');
     
         return $columnsSQL;
+    }
+    
+    public function existColumnNameInTable($columnName, $tableName, $db): bool {
+        $sql = "SHOW COLUMNS FROM `$tableName` LIKE '$columnName'";
+        $result = $db->query($sql);
+
+        if ($result && $result->num_rows > 0) {
+            return true;
+        }
+
+        return false;
     }
 }

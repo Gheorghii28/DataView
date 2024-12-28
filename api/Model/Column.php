@@ -2,6 +2,7 @@
 
 namespace Api\Model;
 
+use Api\Helper\Helper;
 use Api\Model\Table;
 use mysqli;
 
@@ -9,10 +10,12 @@ class Column {
 
     private $db;
     private $tableModel;
+    private $helper;
 
     public function __construct(mysqli $db, Table $tableModel) {
         $this->db = $db;
         $this->tableModel = $tableModel;
+        $this->helper = new Helper();
     }
 
     public function getColumns($tableName) {
@@ -70,6 +73,11 @@ class Column {
         }
 
         foreach ($columns as $columnName => $columnType) {
+
+            if ($this->helper->existColumnNameInTable($columnName,$tableName, $this->db)) {
+                return ['success' => false, 'message' => "Column '$columnName' does exist."];
+            }
+
             $sql = "ALTER TABLE `$tableName` ADD `$columnName` $columnType";
             
             if (!$this->db->query($sql)) {
