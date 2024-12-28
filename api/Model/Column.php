@@ -2,6 +2,7 @@
 
 namespace Api\Model;
 
+use Api\Core\Response;
 use Api\Helper\Helper;
 use Api\Model\Table;
 use mysqli;
@@ -11,11 +12,13 @@ class Column {
     private $db;
     private $tableModel;
     private $helper;
+    private $response;
 
     public function __construct(mysqli $db, Table $tableModel) {
         $this->db = $db;
         $this->tableModel = $tableModel;
         $this->helper = new Helper();
+        $this->response = new Response();
     }
 
     public function getColumns($tableName) {
@@ -50,60 +53,60 @@ class Column {
 
     public function renameColumn($oldName, $newName, $tableName) {
         if (!$this->tableModel->exists($tableName)) {
-            return ['success' => false, 'message' => "Table '$tableName' does not exist."];
+            return $this->response->errorMessage("Table '$tableName' does not exist.");
         }
 
         $columnType = self::getColumnType($tableName, $oldName);
         if ($columnType === false) {
-            return ['success' => false, 'message' => "Column '$oldName' does not exist in table '$tableName'."];
+            return $this->response->errorMessage("Column '$oldName' does not exist in table '$tableName'.");
         }
     
         $sql = "ALTER TABLE `$tableName` CHANGE COLUMN `$oldName` `$newName` $columnType";
     
         if ($this->db->query($sql)) {
-            return ['success' => true, 'message' => "The column '$oldName' in the '$tableName' table has been successfully renamed to '$newName'."];
+            return $this->response->successMessage("The column '$oldName' in the '$tableName' table has been successfully renamed to '$newName'.");
         } else {
-            return ['success' => false, 'message' => 'Error renaming column: ' . $this->db->error];
+            return $this->response->errorMessage('Error renaming column: ' . $this->db->error);
         }
     }    
 
     public function addColumn($tableName, $columns) {
         if (!$this->tableModel->exists($tableName)) {
-            return ['success' => false, 'message' => "Table '$tableName' does not exist."];
+            return $this->response->errorMessage("Table '$tableName' does not exist.");
         }
 
         foreach ($columns as $columnName => $columnType) {
 
             if ($this->helper->existColumnNameInTable($columnName,$tableName, $this->db)) {
-                return ['success' => false, 'message' => "Column '$columnName' does exist."];
+                return $this->response->errorMessage("Column '$columnName' does exist.");
             }
 
             $sql = "ALTER TABLE `$tableName` ADD `$columnName` $columnType";
             
             if (!$this->db->query($sql)) {
-                return ['success' => false, 'message' => 'Error adding column: ' . $this->db->error];
+                return $this->response->errorMessage('Error adding column: ' . $this->db->error);
             }
         }
 
-        return ['success' => true, 'message' => 'Columns successfully added to the table.'];
+        return $this->response->successMessage('Columns successfully added to the table.');
     }
 
     public function deleteColumn($tableName, $columnName) {
         if (!$this->tableModel->exists($tableName)) {
-            return ['success' => false, 'message' => "Table '$tableName' does not exist."];
+            return $this->response->errorMessage("Table '$tableName' does not exist.");
         }
     
         $sqlCheckColumn = "SHOW COLUMNS FROM `$tableName` LIKE '$columnName'";
         $result = $this->db->query($sqlCheckColumn);
         if ($result->num_rows === 0) {
-            return ['success' => false, 'message' => "Column '$columnName' does not exist in table '$tableName'."];
+            return $this->response->errorMessage("Column '$columnName' does not exist in table '$tableName'.");
         }
     
         $sql = "ALTER TABLE `$tableName` DROP COLUMN `$columnName`";
         if ($this->db->query($sql)) {
-            return ['success' => true, 'message' => "Column '$columnName' has been successfully deleted from table '$tableName'."];
+            return $this->response->successMessage("Column '$columnName' has been successfully deleted from table '$tableName'.");
         } else {
-            return ['success' => false, 'message' => 'Error deleting column: ' . $this->db->error];
+            return $this->response->errorMessage('Error deleting column: ' . $this->db->error);
         }
     }
 
@@ -112,7 +115,7 @@ class Column {
         $result = $this->db->query($columnMetaQuery);
     
         if (!$result) {
-            return ['success' => false, 'message' => "Failed to fetch column metadata: " . $this->db->error];
+            return $this->response->errorMessage("Failed to fetch column metadata: " . $this->db->error);
         }
     
         $columnData = [];
@@ -129,7 +132,7 @@ class Column {
     
         foreach ($newOrder as $index => $columnName) {
             if (!isset($columnData[$columnName])) {
-                return ['success' => false, 'message' => "Column $columnName does not exist in table $tableName."];
+                return $this->response->errorMessage("Column $columnName does not exist in table $tableName.");
             }
     
             $columnInfo = $columnData[$columnName];
@@ -140,10 +143,10 @@ class Column {
                 : "ALTER TABLE `$tableName` MODIFY COLUMN `$columnName` {$columnInfo['type']} {$columnInfo['null']} {$columnInfo['default']} {$columnInfo['extra']} FIRST";
     
             if (!$this->db->query($query)) {
-                return ['success' => false, 'message' => "Failed to reorder column $columnName: " . $this->db->error];
+                return $this->response->errorMessage("Failed to reorder column $columnName: " . $this->db->error);
             }
         }
     
-        return ['success' => true, 'message' => 'Column order updated successfully.'];
+        return $this->response->successMessage("Column order updated successfully.");
     }
 }

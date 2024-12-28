@@ -2,6 +2,7 @@
 
 namespace Api\Model;
 
+use Api\Core\Response;
 use Api\Helper\Helper;
 use Exception;
 use mysqli;
@@ -10,10 +11,12 @@ class Table {
 
     private $db;
     private $helper;
+    private $response;
 
     public function __construct(mysqli $db) {
         $this->db = $db;
         $this->helper = new Helper();
+        $this->response = new Response();
     }
 
     public function create($name, $columns) {
@@ -67,7 +70,7 @@ class Table {
 
     public function delete($tableName) {
         if (!self::exists($tableName)) {
-            return ['success' => false, 'message' => "Table '$tableName' does not exist."];
+            return $this->response->errorMessage("Table '$tableName' does not exist.");
         }
     
         $this->db->begin_transaction();
@@ -93,10 +96,10 @@ class Table {
     
             $this->db->commit();
     
-            return ['success' => true, 'message' => "Table '$tableName' has been successfully deleted."];
+            return $this->response->successMessage("Table '$tableName' has been successfully deleted.");
         } catch (Exception $e) {
             $this->db->rollback();
-            return ['success' => false, 'message' => $e->getMessage()];
+            return $this->response->errorMessage("Error deleting table: " . $e->getMessage());
         }
     }    
 
@@ -105,7 +108,7 @@ class Table {
         $stmt = $this->db->prepare($query);
 
         if (!$stmt) {
-            return ['success' => false, 'message' => "Prepare failed: " . $this->db->error];
+            return $this->response->errorMessage("Prepare failed: " . $this->db->error);
         }
 
         $stmt->bind_param('i', $userId);
@@ -122,12 +125,12 @@ class Table {
 
         $stmt->close();
 
-        return ['success' => true, 'message' => 'User tables fetched successfully.', 'tables' => $tables];
+        return $this->response->successMessage('User tables fetched successfully.', $tables, 'tables');
     }
 
     public function rename($oldName, $newName) {
         if (self::exists($newName)) {
-            return ['success' => false, 'message' => "Table '$newName' already exists."];
+            return $this->response->errorMessage("Table '$newName' already exists.");
         }
     
         $sql = "RENAME TABLE `$oldName` TO `$newName`";
@@ -140,15 +143,15 @@ class Table {
                 $stmt->execute();
                 $stmt->close();
             }
-            return ['success' => true, 'message' => "The table has been successfully renamed from '$oldName' to '$newName'."];
+            return $this->response->successMessage("The table has been successfully renamed from '$oldName' to '$newName'.");
         } else {
-            return ['success' => false, 'message' => 'Error renaming table: ' . $this->db->error];
+            return $this->response->errorMessage('Error renaming table: ' . $this->db->error);
         }
     } 
 
     public function updateTableOrder($userId, $newOrder) {
         if (!is_array($newOrder) || empty($newOrder)) {
-            return ['success' => false, 'message' => "Error updating table order: Invalid table order data."];
+            return $this->response->errorMessage("Error updating table order: Invalid table order data.");
         }
 
         $this->db->begin_transaction();
@@ -157,7 +160,7 @@ class Table {
             foreach ($newOrder as $index => $tableId) {
                 if (!is_numeric($tableId)) {
                     $this->db->rollback();
-                    return ['success' => false, 'message' => "Error updating table order: Invalid table ID at position $index."];
+                    return $this->response->errorMessage("Error updating table order: Invalid table ID at position $index.");
                 }
                 
                 $query = "UPDATE user_tables SET table_order = ? WHERE user_id = ? AND id = ?";
@@ -176,11 +179,11 @@ class Table {
             }
     
             $this->db->commit();
-            return ['success' => true, 'message' => 'Table order updated successfully.'];
+            return $this->response->successMessage("Table order updated successfully.");
     
         } catch (Exception $e) {
             $this->db->rollback();
-            return ['success' => false, 'message' => "Error updating table order: " . $e->getMessage()];
+            return $this->response->errorMessage("Error updating table order: " . $e->getMessage());
         }
     }
 }

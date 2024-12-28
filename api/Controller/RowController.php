@@ -57,8 +57,8 @@ class RowController
         $result = $this->rowModel->insertRow($tableName, $data);
 
         return match ($result['success']) {
-            true => $this->response->success($result['message'], ['rowId' => $result['id']]),
-            false => $this->response->internalError($result['message'], ['rowId' => $result['id']]),
+            true => $this->response->success($result['message'], ['rowId' => $result['rowId'][0]]),
+            false => $this->response->internalError($result['message'], ['rowId' => $result['irowId'][0]]),
         };
     }
 

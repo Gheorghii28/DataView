@@ -2,6 +2,7 @@
 
 namespace Api\Model;
 
+use Api\Core\Response;
 use Api\Helper\Validator;
 use Exception;
 use mysqli;
@@ -11,10 +12,12 @@ class Row {
 
     private $db;
     private $validator;
+    private $response;
 
     public function __construct(mysqli $db) {
         $this->db = $db;
         $this->validator = new Validator();
+        $this->response = new Response();
     }
 
     public function getRows($tableName, $userId) {
@@ -44,7 +47,7 @@ class Row {
             $stmt = $this->db->prepare($sql);
     
             if (!$stmt) {
-                return ['success' => false, 'message' => "MySQL Error (prepare): " . $this->db->error];
+                return $this->response->errorMessage("MySQL Error (prepare): " . $this->db->error);
             }
     
             $types = '';
@@ -63,12 +66,12 @@ class Row {
             $stmt->bind_param($types, ...$bindValues);
     
             if ($stmt->execute()) {
-                return ['success' => true, 'message' => 'Row successfully added.', 'id' => $stmt->insert_id];
+                return $this->response->successMessage('Row successfully added.', [$stmt->insert_id], 'rowId');
             } else {
-                return ['success' => false, 'message' => "MySQL Error (execute): " . $stmt->error];
+                return $this->response->errorMessage("MySQL Error (execute): " . $stmt->error);
             }
         } catch (mysqli_sql_exception $e) {
-            return ['success' => false, 'message' => "MySQL Exception: " . $e->getMessage()];
+            return $this->response->errorMessage("MySQL Exception: " . $e->getMessage());
         }
     }
 
@@ -82,7 +85,7 @@ class Row {
             $stmt = $this->db->prepare($sql);
         
             if (!$stmt) {
-                return ['success' => false, 'message' => $this->db->error];
+                return $this->response->errorMessage("MySQL Error (prepare): " . $this->db->error);
             }
         
             $types = '';
@@ -104,12 +107,12 @@ class Row {
             $stmt->bind_param($types, ...$bindValues);
         
             if ($stmt->execute()) {
-                return ['success' => true, 'message' => 'Row successfully updated.'];
+                return $this->response->successMessage('Row successfully updated.');
             } else {
-                return ['success' => false, 'message' => $stmt->error];
+                return $this->response->errorMessage("MySQL Error (execute): " . $stmt->error);
             }
         } catch (mysqli_sql_exception $e) {
-            return ['success' => false, 'message' => "MySQL Exception: " . $e->getMessage()];
+            return $this->response->errorMessage("MySQL Exception: " . $e->getMessage());
         }
     }
 
@@ -120,19 +123,19 @@ class Row {
         $stmt = $this->db->prepare($sql);
     
         if (!$stmt) {
-            return ['success' => false, 'message' => $this->db->error];
+            return $this->response->errorMessage("Prepare failed: " . $this->db->error);
         }
     
         $stmt->bind_param('ii', $rowId, $userId);
     
         if ($stmt->execute()) {
             if ($stmt->affected_rows > 0) {
-                return ['success' => true, 'message' => 'Row deleted successfully.'];
+                return $this->response->successMessage('Row deleted successfully.');
             } else {
-                return ['success' => false, 'message' => 'No row found or you do not have permission to delete this row.'];
+                return $this->response->errorMessage('No row found or you do not have permission to delete this row.');
             }
         } else {
-            return ['success' => false, 'message' => $stmt->error];
+            return $this->response->errorMessage('Error deleting row: ' . $stmt->error);
         }
     }
 
@@ -143,7 +146,7 @@ class Row {
             $resultValidateRowIds = $this->validator->validateRowIds($this->db, $tableName, $newOrder);
 
             if (!$resultValidateRowIds['success']) {
-                return ['success' => false, 'message' => "Error validating row IDs: " . $resultValidateRowIds['message']];
+                return $this->response->errorMessage("Error validating row IDs: " . $resultValidateRowIds['message']);
             }
 
             foreach ($newOrder as $index => $rowId) {
@@ -151,23 +154,23 @@ class Row {
                 $stmt = $this->db->prepare($query);
     
                 if (!$stmt) {
-                    return ['success' => false, 'message' => "Prepare failed: " . $this->db->error];
+                    return $this->response->errorMessage("Prepare failed: " . $this->db->error);
                 }
     
                 $stmt->bind_param('ii', $index, $rowId);
                 if (!$stmt->execute()) {
-                    return ['success' => false, 'message' => "Execute failed: " . $stmt->error];
+                    return $this->response->errorMessage("Execute failed: " . $stmt->error);
                 }
     
                 $stmt->close();
             }
     
             $this->db->commit();
-            return ['success' => true, 'message' => 'Row order updated successfully.'];
+            return $this->response->successMessage('Row order updated successfully.');
     
         } catch (Exception $e) {
             $this->db->rollback();
-            return ['success' => false, 'message' => "Error updating row order: " . $e->getMessage()];
+            return $this->response->errorMessage("Error updating row order: " . $e->getMessage());
         }
     }  
 }

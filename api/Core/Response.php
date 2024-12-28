@@ -91,4 +91,22 @@ class Response
         $response = new self($statusCode, $message, $data, $shouldReturn);
         return $response->send();
     }
+
+    public function successMessage(string $message = 'Operation was successful', array $content = [], string $key = 'data'): array
+    {
+        return [
+            'success' => true,
+            'message' => $message,
+            $key => $content,
+        ];
+    }
+
+    public function errorMessage(string $message = 'An error occurred', array $content = [], string $key = 'data'): array
+    {
+        return [
+            'success' => false,
+            'message' => $message,
+            $key => $content,
+        ];
+    } 
 }

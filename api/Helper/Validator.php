@@ -45,36 +45,36 @@ class Validator {
     private function validateRequest($request, $requiredFields): array {
         foreach ($requiredFields as $field) {
             if (!isset($request[$field])) {
-                return ['success' => false, 'message' => "Invalid request. Missing field: $field."];
+                return $this->response->errorMessage("Invalid request. Missing field: $field.");
             }
         }
-        return ['success' => true, 'message' => 'Validation successful.'];
+        return $this->response->successMessage('Validation successful.');
     }
     
     private function checkTableAccess($tableName, $userTables){
         $tableNames = array_column($userTables, 'name');
         if (!in_array($tableName, $tableNames)) {
-            return ['success' => false, 'message' => 'Forbidden. You do not have permission to access this table.'];
+            return $this->response->errorMessage('Forbidden. You do not have permission to access this table.');
         }
-        return ['success' => true, 'message' => 'Table access granted.'];
+        return $this->response->successMessage('Table access granted.');
     }
 
     public function validateAndExtractRequest($request, $requiredFields): array {
         $validation = self::validateRequest($request, $requiredFields);
         if (!$validation['success']) {
-            return ['success' => false, 'message' => $validation['message']];
+            return $this->response->errorMessage($validation['message']);
         }
         $result = array_intersect_key($request, array_flip($requiredFields));
-        return ['success' => true, 'message' => 'Validation successful.', 'data' => $result];
+        return $this->response->successMessage('Validation successful.', $result);
     }
 
     private function validateUserTableAccess($userId, $tableName, $userTables): array {
         if (!$userId) {
-            return ['success' => false, 'message' => 'Unauthorized. User ID is missing.'];
+            return $this->response->errorMessage('Unauthorized. User ID is missing.');
         }
         
         if (!$tableName) {
-            return ['success' => false, 'message' => 'Table name is required.'];
+            return $this->response->errorMessage('Table name is required.');
         }
 
         return $this->checkTableAccess($tableName, $userTables);
@@ -87,7 +87,7 @@ class Validator {
             $stmt = $db->prepare($sql);
     
             if (!$stmt) {
-                return ['success' => false, 'message' => "MySQL Error (prepare): " . $db->error];
+                return $this->response->errorMessage("MySQL Error (prepare): " . $db->error);
             }
     
             $types = str_repeat('i', count($rowIds));
@@ -104,12 +104,12 @@ class Validator {
     
             if (count($existingIds) !== count($rowIds)) {
                 $missingIds = array_diff($rowIds, $existingIds);
-                return ['success' => false, 'message' => "Invalid row ID(s): " . implode(', ', $missingIds)];
+                return $this->response->errorMessage("Invalid row ID(s): " . implode(', ', $missingIds));
             } else {
-                return ['success' => true, 'message' => 'Validation successful.'];
+                return $this->response->successMessage('Validation successful.');
             }
         } catch (Exception $e) {
-            return ['success' => false, 'message' => "MySQL Exception: " . $e->getMessage()];
+            return $this->response->errorMessage("MySQL Exception: " . $e->getMessage());
         }
     }    
 
@@ -122,15 +122,11 @@ class Validator {
 
             if (isset($data[$columnName])) {
                 if (!$this->validateColumnType($data[$columnName], $columnType)) {
-                    return [
-                        'success' => false,
-                        'message' => "Invalid data type for column '$columnName'. Expected type: $columnType."
-                    ];
+                    return $this->response->errorMessage("Invalid data type for column '$columnName'. Expected type: $columnType.");
                 }
             }
         }
-
-        return ['success' => true, 'message' => 'Validation successful.'];
+        return $this->response->successMessage('Validation successful.');
     }
 
     public function hasAccessToTable($userId, $tableName, $tableModel): array {
