@@ -41,12 +41,16 @@ class TableController
 
         extract($validationRequest['data']);
 
-        if (!$this->validator->validateTableName($tableName)) {
-            return $this->response->error('Invalid table name. Use only letters, numbers, and underscores.');
+        $resultCheckTableName = $this->validator->checkTableName($tableName);
+    
+        if (!$resultCheckTableName['success']) {
+            return $this->response->error($resultCheckTableName['message']);
         }
 
-        if (!$this->validator->validateColumns($columns)) {
-            return $this->response->error('Invalid columns. Ensure valid names and SQL types.');
+        $resultCheckColumns = $this->validator->checkColumns($columns);
+
+        if (!$resultCheckColumns['success']) {
+            return $this->response->error($resultCheckColumns['message']);
         }
 
         if ($this->tableModel->exists($tableName)) {
@@ -75,7 +79,7 @@ class TableController
 
         extract($validationRequest['data']);
         
-        $resultHasAccess = $this->validator->hasAccessToTable($userId, $tableName, $this->tableModel);
+        $resultHasAccess = $this->validator->hasAccessToTable($userId, $tableName, fn($userId) => $this->tableModel->getTablesByUser($userId));
 
         if (!$resultHasAccess['success']) {
             return $this->response->forbidden($resultHasAccess['message']);
@@ -101,7 +105,7 @@ class TableController
 
         extract($validationRequest['data']);
 
-        $resultHasAccess = $this->validator->hasAccessToTable($userId, $tableName, $this->tableModel);
+        $resultHasAccess = $this->validator->hasAccessToTable($userId, $tableName, fn($userId) => $this->tableModel->getTablesByUser($userId));
 
         if (!$resultHasAccess['success']) {
             return $this->response->forbidden($resultHasAccess['message']);
@@ -123,12 +127,14 @@ class TableController
         }
 
         extract($validationRequest['data']);
+
+        $resultCheckTableName = $this->validator->checkTableName($newName);
     
-        if (!$this->validator->validateTableName($newName)) {
-            return $this->response->error('Invalid new table name. Use only letters, numbers, and underscores.');
+        if (!$resultCheckTableName['success']) {
+            return $this->response->error($resultCheckTableName['message']);
         }
 
-        $resultHasAccess = $this->validator->hasAccessToTable($userId, $oldName, $this->tableModel);
+        $resultHasAccess = $this->validator->hasAccessToTable($userId, $oldName, fn($userId) => $this->tableModel->getTablesByUser($userId));
 
         if (!$resultHasAccess['success']) {
             return $this->response->forbidden($resultHasAccess['message']);

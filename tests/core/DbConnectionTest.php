@@ -57,6 +57,7 @@ class DbConnectionTest extends TestCase
         $this->assertGreaterThan(0, $result->num_rows);
     }
 
+    #[\PHPUnit\Framework\Attributes\Group('last')]
     public function testConnectionFailure(): void
     {
         $this->resetSingleton();

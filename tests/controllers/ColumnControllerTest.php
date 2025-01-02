@@ -66,21 +66,38 @@ class ColumnControllerTest extends TestCase
         $this->assertContains('age', $columns);
     }
 
-    public function testCreateColumnValidationFailure()
+    public function testCreateColumnNameValidationFailure()
     {
         $request = [
             'userId' => 1,
             'tableName' => 'test_table',
             'columns' => [
                 'invalid_column_name!' => 'VARCHAR(255)',
-                'age' => 'INVALID_TYPE',
             ]
         ];
 
         $createColumnResult = $this->columnController->create($request);
+        $invalidColumnName = array_keys($request['columns'])[0];
         
         $this->assertEquals(400, $createColumnResult['status']);
-        $this->assertEquals('Invalid columns.', $createColumnResult['message']);
+        $this->assertEquals("Invalid column name: $invalidColumnName. Column name can only contain letters, numbers, and underscores.", $createColumnResult['message']);
+    }
+
+    public function testCreateColumnTypeValidationFailure()
+    {
+        $request = [
+            'userId' => 1,
+            'tableName' => 'test_table',
+            'columns' => [
+                'valid_column_name' => 'INVALID_TYPE',
+            ]
+        ];
+
+        $createColumnResult = $this->columnController->create($request);
+        $validColumnName = array_keys($request['columns'])[0];
+        
+        $this->assertEquals(400, $createColumnResult['status']);
+        $this->assertEquals("Invalid column type for column '{$validColumnName}'.", $createColumnResult['message']);
     }
 
     public function testRenameColumnSuccess()

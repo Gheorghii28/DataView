@@ -12,20 +12,68 @@ class Validator {
     public function __construct() {
         $this->response = new Response();
     }
-    public function validateTableName($name): bool {
-        return preg_match('/^[a-zA-Z0-9_]+$/', $name) === 1; // Check if the name contains only letters, numbers, and underscores
+
+    private function isEmpty($value): bool {
+        return empty($value);
     }
 
-    public function validateColumns($columns): bool {
+    private function startsWithNumber($value): bool {
+        return preg_match('/^[0-9]/', $value) === 1;
+    }
+
+    private function isValidIdentifier($identifier): bool { 
+        // Regex to ensure the identifier starts with a letter and can contain letters, digits, and underscores, with a total length of up to 255 characters.
+        $regex = '/^[a-zA-Z][a-zA-Z0-9_]{0,254}$/';
+
+        return preg_match($regex, $identifier) === 1; 
+    }
+
+    public function checkTableName($name): array {
+        $name = trim($name);
+    
+        if ($this->isEmpty($name)) {
+            return $this->response->errorMessage('Table name cannot be empty.');
+        }
+    
+        if ($this->startsWithNumber($name)) {
+            return $this->response->errorMessage('Table name cannot start with a number.');
+        }
+
+        if (!$this->isValidIdentifier($name)) {
+            return $this->response->errorMessage('Table name can only contain letters, numbers, and underscores.');
+        }
+    
+        return $this->response->successMessage('Table name is valid.');
+    }
+
+    public function checkColumns($columns): array {
+        if (!is_array($columns)) {
+            return $this->response->errorMessage('Invalid columns. Columns must be an array.');
+        }
+
+        if (empty($columns)) {
+            return $this->response->errorMessage('Invalid columns. Columns array is empty.');
+        }
+
+        $validationResult = $this->validateColumns($columns);
+
+        if (!$validationResult['success']) {
+            return $this->response->errorMessage($validationResult['message']);
+        }
+
+        return $this->response->successMessage('Columns are valid.');
+    }
+
+    private function validateColumns($columns): array {
         foreach ($columns as $colName => $colType) { // Check if columns are an array of `name => type` pairs
-            if (!preg_match('/^[a-zA-Z0-9_]+$/', $colName)) {
-                return false; // Invalid column name
+            if (!$this->isValidIdentifier($colName)) {
+                return $this->response->errorMessage("Invalid column name: $colName. Column name can only contain letters, numbers, and underscores.");
             }
-            if (!self::isValidSQLType($colType)) {
-                return false; // Invalid SQL data type
+            if (!$this->isValidSQLType($colType)) {
+                return $this->response->errorMessage("Invalid column type for column '$colName'.");
             }
         }
-        return true;
+        return $this->response->successMessage('Columns are valid.');
     }
 
     private function isValidSQLType($type): bool {
@@ -39,7 +87,7 @@ class Validator {
     }
 
     public function validateColumnName($name): bool {
-        return preg_match('/^[a-zA-Z][a-zA-Z0-9_]*$/', $name) === 1; // The column name must consist only of letters, numbers, and underscores and must start with a letter (no numbers at the beginning).
+        return $this->isValidIdentifier($name);
     }
 
     private function validateRequest($request, $requiredFields): array {
@@ -60,7 +108,7 @@ class Validator {
     }
 
     public function validateAndExtractRequest($request, $requiredFields): array {
-        $validation = self::validateRequest($request, $requiredFields);
+        $validation = $this->validateRequest($request, $requiredFields);
         if (!$validation['success']) {
             return $this->response->errorMessage($validation['message']);
         }
@@ -113,15 +161,13 @@ class Validator {
         }
     }    
 
-    public function validateDataTypes(array $data, string $tableName, $columnModel): array {
-        $columns = $columnModel->getColumns($tableName);
-
-        foreach ($columns as $column) {
+    public function validateRowDataTypes(array $rowData, array $tableColumns): array {
+        foreach ($tableColumns as $column) {
             $columnName = $column['name'];
             $columnType = $column['type'];
 
-            if (isset($data[$columnName])) {
-                if (!$this->validateColumnType($data[$columnName], $columnType)) {
+            if (isset($rowData[$columnName])) {
+                if (!$this->validateColumnType($rowData[$columnName], $columnType)) {
                     return $this->response->errorMessage("Invalid data type for column '$columnName'. Expected type: $columnType.");
                 }
             }
@@ -129,13 +175,13 @@ class Validator {
         return $this->response->successMessage('Validation successful.');
     }
 
-    public function hasAccessToTable($userId, $tableName, $tableModel): array {
-        $result = $tableModel->getTablesByUser($userId);
-        $result = $this->validateUserTableAccess($userId, $tableName, $result['tables']);
-        return $result;
+    public function hasAccessToTable($userId, $tableName, callable $getTablesByUser): array {
+        $resultTables = $getTablesByUser($userId);
+        $resultAccess = $this->validateUserTableAccess($userId, $tableName, $resultTables['tables']);
+        return $resultAccess;
     }
 
-    public function validateColumnType($value, $type): bool {
+    private function validateColumnType($value, $type): bool {
         return match (strtoupper($type)) {
             'INT(11)' => filter_var($value, FILTER_VALIDATE_INT) !== false,
             'VARCHAR(255)' => is_string($value) && strlen($value) <= 255,

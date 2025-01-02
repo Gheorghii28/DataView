@@ -39,14 +39,16 @@ class ColumnController
 
         extract($validationRequest['data']);
 
-        $resultHasAccess = $this->validator->hasAccessToTable($userId, $tableName, $this->tableModel);
+        $resultHasAccess = $this->validator->hasAccessToTable($userId, $tableName, fn($userId) => $this->tableModel->getTablesByUser($userId));
 
         if (!$resultHasAccess['success']) {
             return $this->response->forbidden($resultHasAccess['message']);
         }
 
-        if (!$this->validator->validateColumns($columns)) {
-            return $this->response->error('Invalid columns.');
+        $resultCheckColumns = $this->validator->checkColumns($columns);
+
+        if (!$resultCheckColumns['success']) {
+            return $this->response->error($resultCheckColumns['message']);
         }
 
         $result = $this->columnModel->addColumn($tableName, $columns);
@@ -70,7 +72,7 @@ class ColumnController
             return $this->response->error('Invalid new column name. The column name must start with a letter and contain only letters, numbers, and underscores.');
         }
 
-        $resultHasAccess = $this->validator->hasAccessToTable($userId, $tableName, $this->tableModel);
+        $resultHasAccess = $this->validator->hasAccessToTable($userId, $tableName, fn($userId) => $this->tableModel->getTablesByUser($userId));
 
         if (!$resultHasAccess['success']) {
             return $this->response->forbidden($resultHasAccess['message']);
@@ -93,7 +95,7 @@ class ColumnController
 
         extract($validationRequest['data']);
 
-        $resultHasAccess = $this->validator->hasAccessToTable($userId, $tableName, $this->tableModel);
+        $resultHasAccess = $this->validator->hasAccessToTable($userId, $tableName, fn($userId) => $this->tableModel->getTablesByUser($userId));
 
         if (!$resultHasAccess['success']) {
             return $this->response->forbidden($resultHasAccess['message']);

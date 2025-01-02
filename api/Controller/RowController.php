@@ -42,13 +42,14 @@ class RowController
 
         extract($validationRequest['data']);
 
-        $resultHasAccess = $this->validator->hasAccessToTable($userId, $tableName, $this->tableModel);
+        $resultHasAccess = $this->validator->hasAccessToTable($userId, $tableName, fn($userId) => $this->tableModel->getTablesByUser($userId));
 
         if (!$resultHasAccess['success']) {
             return $this->response->forbidden($resultHasAccess['message']);
         }
         
-        $dataTypeValidationResult = $this->validator->validateDataTypes($data, $tableName, $this->columnModel);
+        $columns = $this->columnModel->getColumns($tableName);
+        $dataTypeValidationResult = $this->validator->validateRowDataTypes($data, $columns);
 
         if(!$dataTypeValidationResult['success']) {
             return $this->response->error($dataTypeValidationResult['message']);
@@ -71,13 +72,14 @@ class RowController
 
         extract($validationRequest['data']);
 
-        $resultHasAccess = $this->validator->hasAccessToTable($userId, $tableName, $this->tableModel);
+        $resultHasAccess = $this->validator->hasAccessToTable($userId, $tableName, fn($userId) => $this->tableModel->getTablesByUser($userId));
 
         if (!$resultHasAccess['success']) {
             return $this->response->forbidden($resultHasAccess['message']);
         }
 
-        $dataTypeValidationResult = $this->validator->validateDataTypes($data, $tableName, $this->columnModel);
+        $columns = $this->columnModel->getColumns($tableName);
+        $dataTypeValidationResult = $this->validator->validateRowDataTypes($data, $columns);
 
         if(!$dataTypeValidationResult['success']) {
             return $this->response->error($dataTypeValidationResult['message']);
@@ -100,7 +102,7 @@ class RowController
 
         extract($validationRequest['data']);
 
-        $resultHasAccess = $this->validator->hasAccessToTable($userId, $tableName, $this->tableModel);
+        $resultHasAccess = $this->validator->hasAccessToTable($userId, $tableName, fn($userId) => $this->tableModel->getTablesByUser($userId));
 
         if (!$resultHasAccess['success']) {
             return $this->response->forbidden($resultHasAccess['message']);
