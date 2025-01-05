@@ -19,28 +19,28 @@ class Helper {
         $validationRequest = $this->validator->validateAndExtractRequest($request, $requiredFields);
         
         if (!$validationRequest['success']) {
-            return $this->response->error('Invalid request format or missing fields.');
+            return $this->response->errorMessage('Invalid request format or missing fields.');
         }
 
         extract($validationRequest['data']);
 
         if (!is_array($order)) {
-            return $this->response->error('Invalid order format.');
+            return $this->response->errorMessage('Invalid order format.');
         }
 
         if (!method_exists($model, $method)) {
-            return $this->response->error("The method $method does not exist in the model $model.");
+            return $this->response->errorMessage("The method $method does not exist in the model " . get_class($model) . ".");
         }
         
         $result = call_user_func([$model, $method], $tableName ?? $userId, $order);
         
         if (!is_array($result) || !isset($result['success']) || !isset($result['message'])) {
-            return $this->response->internalError('Invalid response format from model method.');
+            return $this->response->errorMessage('Invalid response format from model method.');
         }
         
         return match ($result['success']) {
-            true => ['success' => true, 'message' => $result['message']],
-            false => ['success' => false, 'message' => $result['message']],
+            true => $this->response->successMessage($result['message']),
+            false => $this->response->errorMessage($result['message']),
         };
     }
 
